@@ -114,9 +114,9 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">项目名称</span>
           <input
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            value={values.name}
             onChange={(event) => update("name", event.target.value)}
-            placeholder="例如：团队平台主仓"
+            placeholder="例如：团队平台主仓库"
+            value={values.name}
           />
         </label>
 
@@ -124,8 +124,8 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">默认统计周期</span>
           <select
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            value={values.defaultPeriod}
             onChange={(event) => update("defaultPeriod", event.target.value)}
+            value={values.defaultPeriod}
           >
             <option value="day">日报</option>
             <option value="week">周报</option>
@@ -137,8 +137,8 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">仓库来源</span>
           <select
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            value={values.sourceType}
             onChange={(event) => update("sourceType", event.target.value)}
+            value={values.sourceType}
           >
             <option value="local">本地仓库</option>
             <option value="remote">远程 Git URL</option>
@@ -149,9 +149,9 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">时区</span>
           <input
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            value={values.timezone}
             onChange={(event) => update("timezone", event.target.value)}
             placeholder="Asia/Shanghai"
+            value={values.timezone}
           />
         </label>
 
@@ -160,9 +160,9 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">本地仓库路径</span>
             <input
               className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              value={values.localPath}
               onChange={(event) => update("localPath", event.target.value)}
-              placeholder="D:\code\my-repo"
+              placeholder="D:\\code\\my-repo"
+              value={values.localPath}
             />
           </label>
         ) : (
@@ -171,9 +171,9 @@ export function ProjectForm({
               <span className="text-sm font-semibold text-[var(--muted)]">远程仓库 URL</span>
               <input
                 className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-                value={values.remoteUrl}
                 onChange={(event) => update("remoteUrl", event.target.value)}
                 placeholder="https://github.com/org/repo.git"
+                value={values.remoteUrl}
               />
             </label>
 
@@ -181,9 +181,9 @@ export function ProjectForm({
               <span className="text-sm font-semibold text-[var(--muted)]">缓存目录</span>
               <input
                 className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-                value={values.cacheDir}
                 onChange={(event) => update("cacheDir", event.target.value)}
                 placeholder="留空则使用 .cache/repos/<projectId>"
+                value={values.cacheDir}
               />
             </label>
           </>
@@ -193,8 +193,8 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">分支模式</span>
           <select
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            value={values.branchMode}
             onChange={(event) => update("branchMode", event.target.value)}
+            value={values.branchMode}
           >
             <option value="all">全部分支</option>
             <option value="selected">指定分支</option>
@@ -205,9 +205,9 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">作者名</span>
           <input
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            value={values.authorNames}
             onChange={(event) => update("authorNames", event.target.value)}
             placeholder="多个作者可用逗号或换行分隔"
+            value={values.authorNames}
           />
         </label>
 
@@ -215,9 +215,9 @@ export function ProjectForm({
           <span className="text-sm font-semibold text-[var(--muted)]">作者邮箱</span>
           <input
             className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            value={values.authorEmails}
             onChange={(event) => update("authorEmails", event.target.value)}
             placeholder="多个邮箱可用逗号或换行分隔"
+            value={values.authorEmails}
           />
         </label>
 
@@ -226,9 +226,9 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">指定分支</span>
             <textarea
               className="min-h-28 w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              value={values.selectedBranches}
               onChange={(event) => update("selectedBranches", event.target.value)}
               placeholder={"main\ndevelop\nrelease/2026.03"}
+              value={values.selectedBranches}
             />
           </label>
         ) : null}
@@ -255,9 +255,9 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">Base URL</span>
             <input
               className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              value={values.llmBaseUrl}
               onChange={(event) => update("llmBaseUrl", event.target.value)}
               placeholder="https://api.openai.com/v1"
+              value={values.llmBaseUrl}
             />
           </label>
 
@@ -265,9 +265,9 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">模型</span>
             <input
               className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              value={values.llmModel}
               onChange={(event) => update("llmModel", event.target.value)}
               placeholder="gpt-5.4 或兼容模型"
+              value={values.llmModel}
             />
           </label>
 
@@ -275,9 +275,9 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">Temperature</span>
             <input
               className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              value={values.llmTemperature}
               onChange={(event) => update("llmTemperature", event.target.value)}
               placeholder="0.3"
+              value={values.llmTemperature}
             />
           </label>
 
@@ -285,10 +285,10 @@ export function ProjectForm({
             <span className="text-sm font-semibold text-[var(--muted)]">API Key</span>
             <input
               className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              type="password"
-              value={values.llmApiKey}
               onChange={(event) => update("llmApiKey", event.target.value)}
               placeholder="sk-..."
+              type="password"
+              value={values.llmApiKey}
             />
           </label>
         </div>

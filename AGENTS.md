@@ -18,8 +18,8 @@
 ## 开发命令
 
 - 先注入本地工具链 PATH：
-  - `$env:PATH="D:\AI\.tools\node-v22.14.0-win-x64;D:\AI\.tools\mingit\cmd;D:\AI\.tools\gh\bin;$env:PATH"`
-  - `$env:COREPACK_HOME="D:\AI\.tools\corepack-home"`
+  - `$env:PATH="D:\AI\git-daily-ai-workbench\.tools\node-v22.14.0-win-x64;D:\AI\git-daily-ai-workbench\.tools\mingit\cmd;D:\AI\git-daily-ai-workbench\.tools\gh\bin;$env:PATH"`
+  - `$env:COREPACK_HOME="D:\AI\git-daily-ai-workbench\.tools\corepack-home"`
 - 安装依赖：`pnpm install`
 - 推送数据库 schema：`pnpm prisma:push`
 - 本地开发：`pnpm dev`

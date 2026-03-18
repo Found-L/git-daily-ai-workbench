@@ -17,6 +17,7 @@ export async function POST(
       : undefined;
 
     const report = await generateProjectReport(projectId, period);
+
     return NextResponse.json({
       report: {
         id: report.id,
@@ -25,7 +26,7 @@ export async function POST(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "报告生成失败",
+        error: error instanceof Error ? error.message : "Report generation failed",
       },
       {
         status: 500,

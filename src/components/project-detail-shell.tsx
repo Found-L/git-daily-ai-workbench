@@ -50,6 +50,18 @@ type ProjectDetail = {
   }>;
 };
 
+function getPeriodLabel(period: string) {
+  if (period === "day") {
+    return "日报";
+  }
+
+  if (period === "week") {
+    return "周报";
+  }
+
+  return "月报";
+}
+
 export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   const router = useRouter();
   const [reportPeriod, setReportPeriod] = useState(project.defaultPeriod);
@@ -108,7 +120,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
         return;
       }
 
-      setStatus("报告生成完成，正在跳转");
+      setStatus("报告已生成，正在跳转到详情页");
       setCurrentAction(null);
       router.refresh();
       router.push(`/reports/${payload.report.id}`);
@@ -131,9 +143,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
             <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em]">{project.name}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
               分支规则：
-              {project.branchRule.mode === "all"
-                ? "全部分支"
-                : project.branchRule.selectedBranches.join(", ")}
+              {project.branchRule.mode === "all" ? "全部分支" : project.branchRule.selectedBranches.join(", ")}
               {" · "}
               作者规则：
               {project.authorRule.names.length + project.authorRule.emails.length > 0
@@ -241,7 +251,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-[var(--muted)]">尚未同步，暂无分支快照。</span>
+                  <span className="text-sm text-[var(--muted)]">尚未同步，暂时没有分支快照。</span>
                 )}
               </div>
             </div>
@@ -274,9 +284,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-lg font-semibold">
-                          {report.period === "day" ? "日报" : report.period === "week" ? "周报" : "月报"}
-                        </p>
+                        <p className="text-lg font-semibold">{getPeriodLabel(report.period)}</p>
                         <p className="mt-1 text-sm text-[var(--muted)]">
                           {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)} · {report.totalCommits} 条提交
                         </p>

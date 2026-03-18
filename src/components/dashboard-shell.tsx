@@ -30,6 +30,18 @@ type ProjectCard = {
   } | null;
 };
 
+function getPeriodLabel(period: string) {
+  if (period === "day") {
+    return "日报";
+  }
+
+  if (period === "week") {
+    return "周报";
+  }
+
+  return "月报";
+}
+
 export function DashboardShell({
   projects,
   defaultTimezone,
@@ -61,10 +73,11 @@ export function DashboardShell({
             Git + AI Report Desk
           </div>
           <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-[-0.05em] text-[var(--foreground)] md:text-6xl">
-            把提交历史整理成你真正能读的日报。
+            把提交历史整理成真正可读的日报。
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--muted)] md:text-lg">
-            连接本地仓库或远程 Git URL，按作者与分支筛选，自动汇总日/周/月提交，并在配置好模型后生成中文 AI Markdown 报告。
+            连接本地仓库或远程 Git URL，按作者和分支筛选，自动汇总日、周、月提交，并在配置模型后生成中文
+            AI Markdown 报告。
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -89,7 +102,8 @@ export function DashboardShell({
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">新建项目</p>
           <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em]">添加新的仓库监控配置</h2>
           <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-            第一版支持本地仓库路径和远程 Git URL。AI 配置为空时，系统会自动输出规则版 Markdown 摘要。
+            第一版支持本地仓库路径和远程 Git URL。AI 配置留空时，系统会自动输出规则版 Markdown
+            摘要。
           </p>
 
           <div className="mt-6">
@@ -131,11 +145,7 @@ export function DashboardShell({
                   <h3 className="mt-2 text-2xl font-bold tracking-[-0.04em]">{project.name}</h3>
                 </div>
                 <div className="rounded-full border border-[var(--line)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                  {project.defaultPeriod === "day"
-                    ? "日报"
-                    : project.defaultPeriod === "week"
-                      ? "周报"
-                      : "月报"}
+                  {getPeriodLabel(project.defaultPeriod)}
                 </div>
               </div>
 
@@ -167,7 +177,7 @@ export function DashboardShell({
                   <dt className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">最近报告</dt>
                   <dd className="mt-2 text-sm leading-7 text-[var(--foreground)]">
                     {project.lastReport
-                      ? `${project.lastReport.period} · ${formatLocalDateTime(project.lastReport.createdAt, "zh-CN", project.timezone)}`
+                      ? `${getPeriodLabel(project.lastReport.period)} · ${formatLocalDateTime(project.lastReport.createdAt, "zh-CN", project.timezone)}`
                       : "还没有生成报告"}
                   </dd>
                 </div>
@@ -183,7 +193,7 @@ export function DashboardShell({
 
         {filteredProjects.length === 0 ? (
           <div className="mt-8 rounded-[1.5rem] border border-dashed border-[var(--line)] bg-white/45 px-5 py-10 text-center text-sm text-[var(--muted)]">
-            当前没有匹配的项目，试试换个关键词或先新建一个仓库配置。
+            当前没有匹配的项目，试试换个关键词，或者先新建一个仓库配置。
           </div>
         ) : null}
       </section>

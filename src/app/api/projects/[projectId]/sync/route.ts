@@ -9,13 +9,14 @@ export async function POST(
   try {
     const { projectId } = await params;
     const syncRun = await runProjectSync(projectId);
+
     return NextResponse.json({
       syncRun,
     });
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "同步失败",
+        error: error instanceof Error ? error.message : "Sync failed",
       },
       {
         status: 500,

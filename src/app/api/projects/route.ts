@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
     const project = await upsertProjectFromPayload(payload);
+
     return NextResponse.json({
       project: {
         id: project?.id,
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         {
-          error: error.issues.map((issue) => issue.message).join("；"),
+          error: error.issues.map((issue) => issue.message).join("; "),
         },
         {
           status: 400,
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "保存项目失败",
+        error: error instanceof Error ? error.message : "Failed to save project",
       },
       {
         status: 500,

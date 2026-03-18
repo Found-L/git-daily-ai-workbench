@@ -12,7 +12,7 @@ export async function GET(
   if (!report) {
     return NextResponse.json(
       {
-        error: "报告不存在",
+        error: "Report not found",
       },
       {
         status: 404,

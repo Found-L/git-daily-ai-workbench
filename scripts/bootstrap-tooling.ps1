@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$toolRoot = "D:\AI\.tools"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$toolRoot = Join-Path $projectRoot ".tools"
 $nodeVersion = "v22.14.0"
 $gitVersion = "2.48.1.windows.1"
 $ghVersion = "2.69.0"

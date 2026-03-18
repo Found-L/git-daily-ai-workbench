@@ -11,11 +11,11 @@
 
 ## 本地开发
 
-当前环境缺少系统级 Node/Git 时，可先执行 `D:\AI\scripts\bootstrap-tooling.ps1` 下载便携工具，再在 PowerShell 里临时注入 PATH：
+当前环境缺少系统级 Node/Git 时，可先执行 `D:\AI\git-daily-ai-workbench\scripts\bootstrap-tooling.ps1` 下载便携工具，再在 PowerShell 里临时注入 PATH：
 
 ```powershell
-$env:PATH="D:\AI\.tools\node-v22.14.0-win-x64;D:\AI\.tools\mingit\cmd;D:\AI\.tools\gh\bin;$env:PATH"
-$env:COREPACK_HOME="D:\AI\.tools\corepack-home"
+$env:PATH="D:\AI\git-daily-ai-workbench\.tools\node-v22.14.0-win-x64;D:\AI\git-daily-ai-workbench\.tools\mingit\cmd;D:\AI\git-daily-ai-workbench\.tools\gh\bin;$env:PATH"
+$env:COREPACK_HOME="D:\AI\git-daily-ai-workbench\.tools\corepack-home"
 ```
 
 然后执行：
@@ -38,10 +38,10 @@ pnpm test:e2e
 
 ## 数据与缓存
 
-- SQLite 数据库：`D:\AI\prisma\dev.db`
-- 远程仓库缓存：`D:\AI\.cache\repos\<projectId>`
+- SQLite 数据库：`D:\AI\git-daily-ai-workbench\prisma\dev.db`
+- 远程仓库缓存：`D:\AI\git-daily-ai-workbench\.cache\repos\<projectId>`
 - Markdown 导出：通过 API 下载，不强制写入仓库
 
 ## GitHub
 
-项目预置了 GitHub CLI 便携版 `D:\AI\.tools\gh\bin\gh.exe`。若要创建私有仓库并推送，请先完成 `gh auth login` 或提供可用 token。
+项目预置了 GitHub CLI 便携版 `D:\AI\git-daily-ai-workbench\.tools\gh\bin\gh.exe`。若要创建私有仓库并推送，请先完成 `gh auth login` 或提供可用 token。

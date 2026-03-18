@@ -7,6 +7,18 @@ import { getReportDetail, parseStructuredJson } from "@/lib/project-service";
 import type { StructuredReport } from "@/lib/types";
 import { formatLocalDateTime } from "@/lib/utils";
 
+function getPeriodLabel(period: string) {
+  if (period === "day") {
+    return "日报";
+  }
+
+  if (period === "week") {
+    return "周报";
+  }
+
+  return "月报";
+}
+
 export default async function ReportDetailPage({
   params,
 }: {
@@ -35,7 +47,7 @@ export default async function ReportDetailPage({
         <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">
-              {report.period === "day" ? "日报" : report.period === "week" ? "周报" : "月报"}
+              {getPeriodLabel(report.period)}
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em]">{report.project.name}</h1>
             <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
@@ -87,7 +99,7 @@ export default async function ReportDetailPage({
                     key={hotspot.file}
                   >
                     <p className="break-all text-sm font-semibold">{hotspot.file}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{hotspot.touches} 次触达</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">{hotspot.touches} 次变更</p>
                   </div>
                 ))
               ) : (
