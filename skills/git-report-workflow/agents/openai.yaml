@@ -1,0 +1,4 @@
+schema_version: "1"
+display_name: "Git Report Workflow"
+short_description: "Guides Git sync, commit parsing, report generation, and Markdown export in this project."
+default_prompt: "Use the repository's Git collection and report-generation workflow to implement or adjust reporting behavior safely."

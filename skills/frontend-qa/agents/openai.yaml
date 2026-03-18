@@ -1,0 +1,4 @@
+schema_version: "1"
+display_name: "Frontend QA"
+short_description: "Guides dashboard UX, interaction states, and Playwright smoke coverage in this project."
+default_prompt: "Use the repository's frontend QA workflow to refine UI behavior and keep smoke coverage aligned."

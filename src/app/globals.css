@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4efe4;
+  --paper: rgba(255, 251, 244, 0.78);
+  --paper-strong: rgba(255, 248, 237, 0.96);
+  --foreground: #1e1f1a;
+  --muted: #625d55;
+  --line: rgba(37, 38, 28, 0.12);
+  --accent: #d8643c;
+  --accent-deep: #9f3c27;
+  --accent-soft: rgba(216, 100, 60, 0.12);
+  --emerald: #1d8b6b;
+  --font-sans: "Segoe UI Variable Display", "Aptos", "Trebuchet MS", sans-serif;
+  --font-mono: "Cascadia Mono", "IBM Plex Mono", "Consolas", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at top left, rgba(216, 100, 60, 0.26), transparent 34%),
+    radial-gradient(circle at 80% 10%, rgba(29, 139, 107, 0.17), transparent 25%),
+    linear-gradient(180deg, #f4efe4 0%, #efe3cf 48%, #f7f1e7 100%);
+  font-family: var(--font-sans), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(216, 100, 60, 0.22);
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 26px 26px;
+  pointer-events: none;
+}
+
+.app-glow {
+  position: absolute;
+  width: 30rem;
+  height: 30rem;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.app-glow-left {
+  left: -10rem;
+  top: 8rem;
+  background: rgba(216, 100, 60, 0.32);
+}
+
+.app-glow-right {
+  right: -9rem;
+  top: 20rem;
+  background: rgba(29, 139, 107, 0.28);
+}
+
+.page-wrap {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(72, 59, 40, 0.08);
+}
+
+.mono {
+  font-family: var(--font-mono), monospace;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.markdown-body p,
+.markdown-body li {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.markdown-body ul {
+  padding-left: 1.2rem;
+}
+
+.markdown-body code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.45rem;
+  background: rgba(33, 35, 28, 0.06);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.92em;
+}
