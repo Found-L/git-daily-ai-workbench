@@ -64,7 +64,8 @@ if ($Command.Count -gt 0) {
       throw "corepack was not found. Install Node.js 20.9+ or run .\\scripts\\bootstrap-tooling.ps1 first."
     }
 
-    Invoke-NativeCommand -FilePath $corepack.Source -ArgumentList @("pnpm") + $commandArgs
+    $pnpmArgs = @("pnpm") + $commandArgs
+    Invoke-NativeCommand -FilePath $corepack.Source -ArgumentList $pnpmArgs
   }
 
   $resolvedCommand = Get-Command $commandName -ErrorAction SilentlyContinue
