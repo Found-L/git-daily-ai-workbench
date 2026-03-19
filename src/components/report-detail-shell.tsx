@@ -12,10 +12,11 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import {
-  Alert,
+  App,
   Button,
   Card,
   Col,
+  Collapse,
   Descriptions,
   Popconfirm,
   Row,
@@ -76,6 +77,34 @@ function getPeriodLabel(period: string) {
   return "月报";
 }
 
+function buildDailySummaryMarkdown(dailySummaries: StructuredDailySummary[]) {
+  if (dailySummaries.length === 0) {
+    return "";
+  }
+
+  return `## 每日事项清单\n\n${dailySummaries
+    .map(
+      (day) =>
+        `${day.label}\n\n${day.items.map((item, index) => `${index + 1}. ${item}`).join("\n")}`,
+    )
+    .join("\n\n")}`;
+}
+
+function normalizeReportMarkdown(markdown: string, dailySummaries: StructuredDailySummary[]) {
+  if (dailySummaries.length === 0) {
+    return markdown;
+  }
+
+  const normalizedDailySummary = buildDailySummaryMarkdown(dailySummaries);
+  const summarySectionPattern = /##\s*每日事项清单[\s\S]*?(?=\n##\s|$)/;
+
+  if (summarySectionPattern.test(markdown)) {
+    return markdown.replace(summarySectionPattern, normalizedDailySummary);
+  }
+
+  return `${normalizedDailySummary}\n\n${markdown}`;
+}
+
 export function ReportDetailShell({
   report,
   structured,
@@ -94,13 +123,13 @@ export function ReportDetailShell({
   };
   structured: StructuredReportView;
 }) {
+  const { notification } = App.useApp();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const authorScope = [...structured.authorScope.names, ...structured.authorScope.emails];
+  const displayMarkdown = normalizeReportMarkdown(report.markdown, structured.dailySummaries);
 
   const removeReport = () => {
-    setError(null);
     setIsDeleting(true);
 
     startTransition(async () => {
@@ -113,11 +142,18 @@ export function ReportDetailShell({
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "删除报告失败");
+        notification.error({
+          description: payload.error ?? "删除报告失败，请稍后重试。",
+          message: "删除报告失败",
+        });
         setIsDeleting(false);
         return;
       }
 
+      notification.success({
+        description: "当前报告已移除，不会影响项目配置与同步数据。",
+        message: "报告已删除",
+      });
       router.push(`/projects/${payload.projectId ?? report.project.id}`);
       router.refresh();
     });
@@ -146,7 +182,7 @@ export function ReportDetailShell({
                   {report.project.name}
                 </Title>
                 <Paragraph style={{ marginBottom: 0, marginTop: 12 }} type="secondary">
-                  先看最终生成内容，再下翻查看图表、每日提炼结果和提交引用。正文区域已加重视觉层次，方便快速聚焦。
+                  先看每日事项清单和图表，再按需展开完整 Markdown。这样长正文不会挡住下方统计和提交引用。
                 </Paragraph>
               </div>
 
@@ -178,19 +214,34 @@ export function ReportDetailShell({
               </div>
             </div>
 
-            {error ? <Alert showIcon title={error} type="error" /> : null}
           </Space>
         </Card>
       </section>
 
       <section className="page-section">
-        <Card
-          className="report-article-card report-article-card--focus"
-          extra={<Tag color="blue">最终内容</Tag>}
-          title="生成结果"
-        >
-          <div className="report-article markdown-body">
-            <ReactMarkdown>{report.markdown}</ReactMarkdown>
+        <Card className="daily-summary-focus-card" title="每日事项清单">
+          <div className="daily-summary-focus-grid">
+            {structured.dailySummaries.length > 0 ? (
+              structured.dailySummaries.map((day) => (
+                <Card className="daily-summary-focus-item" key={`focus-${day.date}`} size="small">
+                  <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <Text strong>{day.label}</Text>
+                      <Text type="secondary">
+                        {day.commitCount} 条提交 · +{day.additions} / -{day.deletions}
+                      </Text>
+                    </div>
+                    <ol className="daily-summary-list daily-summary-list--focus">
+                      {day.items.map((item) => (
+                        <li key={`focus-${day.date}-${item}`}>{item}</li>
+                      ))}
+                    </ol>
+                  </Space>
+                </Card>
+              ))
+            ) : (
+              <Text type="secondary">当前周期没有按天提炼的数据。</Text>
+            )}
           </div>
         </Card>
       </section>
@@ -199,6 +250,30 @@ export function ReportDetailShell({
         <ReportCharts
           dailySummaries={structured.dailySummaries}
           topAuthors={structured.topAuthors ?? []}
+        />
+      </section>
+
+      <section className="page-section">
+        <Collapse
+          className="soft-collapse report-content-collapse"
+          defaultActiveKey={[]}
+          items={[
+            {
+              children: (
+                <div className="report-article markdown-body">
+                  <ReactMarkdown>{displayMarkdown}</ReactMarkdown>
+                </div>
+              ),
+              extra: <Tag color="blue">最终内容</Tag>,
+              key: "full-markdown",
+              label: (
+                <div className="collapse-label">
+                  <span className="collapse-label__title">完整 Markdown</span>
+                  <span className="collapse-label__hint">默认收起，按需展开查看完整正文</span>
+                </div>
+              ),
+            },
+          ]}
         />
       </section>
 
@@ -267,32 +342,6 @@ export function ReportDetailShell({
                     />
                   </Card>
                 </div>
-              </Card>
-
-              <Card title="按天提炼结果">
-                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-                  {structured.dailySummaries.length > 0 ? (
-                    structured.dailySummaries.map((day) => (
-                      <Card className="metric-card" key={day.date} size="small">
-                        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <Text strong>{day.label}</Text>
-                            <Text type="secondary">
-                              {day.commitCount} 条提交 · +{day.additions} / -{day.deletions}
-                            </Text>
-                          </div>
-                          <ol className="daily-summary-list">
-                            {day.items.map((item) => (
-                              <li key={`${day.date}-${item}`}>{item}</li>
-                            ))}
-                          </ol>
-                        </Space>
-                      </Card>
-                    ))
-                  ) : (
-                    <Text type="secondary">当前周期没有按天提炼的数据。</Text>
-                  )}
-                </Space>
               </Card>
 
               <Card title="热点文件">

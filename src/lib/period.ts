@@ -1,4 +1,13 @@
-import { endOfDay, endOfMonth, endOfWeek, startOfDay, startOfMonth, startOfWeek } from "date-fns";
+import {
+  endOfDay,
+  endOfMonth,
+  endOfWeek,
+  getISOWeek,
+  getISOWeekYear,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 import type { PeriodWindow, ReportPeriod } from "@/lib/types";
@@ -82,6 +91,37 @@ export function resolvePeriodWindow(
     label,
     start,
     end,
+  };
+}
+
+export function resolveCurrentReference(
+  period: ReportPeriod,
+  timezone: string,
+  referenceDate = new Date(),
+) {
+  const zonedNow = toZonedTime(referenceDate, timezone);
+
+  if (period === "day") {
+    const pickerSeed = formatInTimeZone(referenceDate, timezone, "yyyy-MM-dd");
+    return {
+      pickerSeed,
+      referenceValue: pickerSeed,
+    };
+  }
+
+  if (period === "month") {
+    return {
+      pickerSeed: formatInTimeZone(referenceDate, timezone, "yyyy-MM-01"),
+      referenceValue: formatInTimeZone(referenceDate, timezone, "yyyy-MM"),
+    };
+  }
+
+  const weekStartLocal = startOfWeek(zonedNow, { weekStartsOn: 1 });
+  const weekStart = fromZonedTime(weekStartLocal, timezone);
+
+  return {
+    pickerSeed: formatInTimeZone(weekStart, timezone, "yyyy-MM-dd"),
+    referenceValue: `${getISOWeekYear(weekStartLocal)}-W${String(getISOWeek(weekStartLocal)).padStart(2, "0")}`,
   };
 }
 

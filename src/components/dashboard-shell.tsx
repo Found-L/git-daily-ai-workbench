@@ -13,7 +13,7 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import {
-  Alert,
+  App,
   Button,
   Card,
   Col,
@@ -29,7 +29,6 @@ import {
 } from "antd";
 
 import { ProjectForm } from "@/components/project-form";
-import { formatLocalDateTime } from "@/lib/utils";
 
 type ProjectCard = {
   id: string;
@@ -41,18 +40,18 @@ type ProjectCard = {
   authorNames: string[];
   authorEmails: string[];
   hasAiConfig: boolean;
-  updatedAt: string;
   lastSync: {
     status: string;
     message: string | null;
-    startedAt: string;
+    startedAtLabel: string;
   } | null;
   lastReport: {
     id: string;
     status: string;
     period: string;
-    createdAt: string;
+    createdAtLabel: string;
   } | null;
+  updatedAtLabel: string;
 };
 
 const { Paragraph, Text, Title } = Typography;
@@ -76,17 +75,14 @@ export function DashboardShell({
   projects: ProjectCard[];
   defaultTimezone: string;
 }) {
+  const { notification } = App.useApp();
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const deferredKeyword = useDeferredValue(keyword);
 
   const removeProject = (projectId: string) => {
-    setStatus(null);
-    setError(null);
     setPendingDeleteId(projectId);
 
     startTransition(async () => {
@@ -98,12 +94,18 @@ export function DashboardShell({
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "删除项目失败");
+        notification.error({
+          description: payload.error ?? "删除项目失败，请稍后重试。",
+          message: "删除项目失败",
+        });
         setPendingDeleteId(null);
         return;
       }
 
-      setStatus("项目已删除。");
+      notification.success({
+        description: "项目、同步记录和历史报告已一并移除。",
+        message: "项目已删除",
+      });
       setPendingDeleteId(null);
       router.refresh();
     });
@@ -210,23 +212,6 @@ export function DashboardShell({
             />
           </div>
 
-          {status ? (
-            <Alert
-              showIcon
-              style={{ marginTop: 20 }}
-              title={status}
-              type="success"
-            />
-          ) : null}
-          {error ? (
-            <Alert
-              showIcon
-              style={{ marginTop: 20 }}
-              title={error}
-              type="error"
-            />
-          ) : null}
-
           {filteredProjects.length === 0 ? (
             <Empty
               description="当前没有匹配的项目。可以调整搜索词，或者先新增一个仓库配置。"
@@ -286,11 +271,7 @@ export function DashboardShell({
                               <Text type="secondary">最近同步</Text>
                               <Text>
                                 {project.lastSync
-                                  ? `${project.lastSync.status} · ${formatLocalDateTime(
-                                      project.lastSync.startedAt,
-                                      "zh-CN",
-                                      project.timezone,
-                                    )}`
+                                  ? `${project.lastSync.status} · ${project.lastSync.startedAtLabel}`
                                   : "还没有同步记录"}
                               </Text>
                             </Space>
@@ -302,11 +283,7 @@ export function DashboardShell({
                               <Text type="secondary">最近报告</Text>
                               <Text>
                                 {project.lastReport
-                                  ? `${getPeriodLabel(project.lastReport.period)} · ${formatLocalDateTime(
-                                      project.lastReport.createdAt,
-                                      "zh-CN",
-                                      project.timezone,
-                                    )}`
+                                  ? `${getPeriodLabel(project.lastReport.period)} · ${project.lastReport.createdAtLabel}`
                                   : "还没有生成过报告"}
                               </Text>
                             </Space>
@@ -315,24 +292,26 @@ export function DashboardShell({
                       </Row>
 
                       <div className="project-card__footer">
-                        <Space className="project-card__footer-main" size="middle" wrap>
-                          <Button
-                            icon={<ArrowRightOutlined />}
-                            onClick={() => router.push(`/projects/${project.id}`)}
-                            type="primary"
-                          >
-                            打开项目
-                          </Button>
-                          {project.lastReport ? (
-                            <Button onClick={() => router.push(`/reports/${project.lastReport?.id}`)}>
-                              查看最近报告
+                        <div className="project-card__footer-row project-card__footer-row--actions">
+                          <Space className="project-card__footer-main" size="middle" wrap>
+                            <Button
+                              icon={<ArrowRightOutlined />}
+                              onClick={() => router.push(`/projects/${project.id}`)}
+                              type="primary"
+                            >
+                              打开项目
                             </Button>
-                          ) : null}
-                        </Space>
+                            {project.lastReport ? (
+                              <Button onClick={() => router.push(`/reports/${project.lastReport!.id}`)}>
+                                查看最近报告
+                              </Button>
+                            ) : null}
+                          </Space>
+                        </div>
 
-                        <Space className="project-card__footer-side" size="small" wrap>
+                        <div className="project-card__footer-row project-card__footer-row--meta">
                           <Text type="secondary">
-                            最近更新：{formatLocalDateTime(project.updatedAt, "zh-CN", project.timezone)}
+                            最近更新：{project.updatedAtLabel}
                           </Text>
                           <Popconfirm
                             description="会连同同步记录和历史报告一起删除，无法恢复。"
@@ -342,6 +321,7 @@ export function DashboardShell({
                             title="确认删除这个项目？"
                           >
                             <Button
+                              className="project-card__danger"
                               danger
                               icon={<DeleteOutlined />}
                               loading={pendingDeleteId === project.id}
@@ -350,7 +330,7 @@ export function DashboardShell({
                               删除项目
                             </Button>
                           </Popconfirm>
-                        </Space>
+                        </div>
                       </div>
                     </Space>
                   </Card>

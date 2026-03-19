@@ -1,6 +1,7 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { listProjectCards } from "@/lib/project-service";
 import { parseJsonArray } from "@/lib/serialization";
+import { formatLocalDateTime } from "@/lib/utils";
 
 export default async function HomePage() {
   const projects = await listProjectCards();
@@ -21,12 +22,16 @@ export default async function HomePage() {
         hasAiConfig: Boolean(
           project.llmProfile?.baseUrl && project.llmProfile?.apiKey && project.llmProfile?.model,
         ),
-        updatedAt: project.updatedAt.toISOString(),
+        updatedAtLabel: formatLocalDateTime(project.updatedAt, "zh-CN", project.timezone),
         lastSync: project.syncRuns[0]
           ? {
               status: project.syncRuns[0].status,
               message: project.syncRuns[0].message,
-              startedAt: project.syncRuns[0].startedAt.toISOString(),
+              startedAtLabel: formatLocalDateTime(
+                project.syncRuns[0].startedAt,
+                "zh-CN",
+                project.timezone,
+              ),
             }
           : null,
         lastReport: project.reports[0]
@@ -34,7 +39,11 @@ export default async function HomePage() {
               id: project.reports[0].id,
               status: project.reports[0].status,
               period: project.reports[0].period,
-              createdAt: project.reports[0].createdAt.toISOString(),
+              createdAtLabel: formatLocalDateTime(
+                project.reports[0].createdAt,
+                "zh-CN",
+                project.timezone,
+              ),
             }
           : null,
       }))}

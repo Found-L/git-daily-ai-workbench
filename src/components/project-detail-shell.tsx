@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons";
 import {
   Alert,
+  App,
   Button,
   Card,
   Col,
@@ -32,7 +33,7 @@ import {
 } from "antd";
 
 import { ProjectForm } from "@/components/project-form";
-import { formatLocalDateTime, maskSecret } from "@/lib/utils";
+import { maskSecret } from "@/lib/utils";
 
 type ProjectDetail = {
   id: string;
@@ -40,6 +41,10 @@ type ProjectDetail = {
   sourceType: string;
   defaultPeriod: "day" | "week" | "month";
   timezone: string;
+  initialReference: {
+    referenceValue: string;
+    pickerSeed: string;
+  };
   repoSource: {
     localPath: string | null;
     remoteUrl: string | null;
@@ -65,13 +70,13 @@ type ProjectDetail = {
     status: string;
     message: string | null;
     commitCount: number;
-    startedAt: string;
+    startedAtLabel: string;
   }>;
   reports: Array<{
     id: string;
     period: string;
     status: string;
-    createdAt: string;
+    createdAtLabel: string;
     totalCommits: number;
   }>;
 };
@@ -143,15 +148,13 @@ function getReferencePickerFormat(period: "day" | "week" | "month") {
 }
 
 export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
+  const { notification } = App.useApp();
   const router = useRouter();
-  const initialReference = createCurrentReference(project.defaultPeriod, project.timezone);
   const [reportPeriod, setReportPeriod] = useState(project.defaultPeriod);
-  const [referenceValue, setReferenceValue] = useState(initialReference.referenceValue);
+  const [referenceValue, setReferenceValue] = useState(project.initialReference.referenceValue);
   const [referencePickerValue, setReferencePickerValue] = useState<Dayjs | null>(
-    initialReference.pickerValue,
+    dayjs(project.initialReference.pickerSeed),
   );
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [currentAction, setCurrentAction] = useState<
     "sync" | "report" | "delete-project" | string | null
   >(null);
@@ -176,8 +179,6 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   };
 
   const runSync = () => {
-    setStatus(null);
-    setError(null);
     setCurrentAction("sync");
 
     startTransition(async () => {
@@ -189,12 +190,18 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "同步失败");
+        notification.error({
+          description: payload.error ?? "同步失败，请稍后重试。",
+          message: "同步失败",
+        });
         setCurrentAction(null);
         return;
       }
 
-      setStatus("仓库同步完成，提交索引已更新。");
+      notification.success({
+        description: "提交索引已经刷新到本地数据库，可以直接生成报告。",
+        message: "仓库同步完成",
+      });
       setCurrentAction(null);
       router.refresh();
     });
@@ -202,12 +209,13 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
 
   const generateReport = () => {
     if (!hasSyncedData) {
-      setError("请先同步仓库。系统需要先把提交索引到本地 SQLite，才能生成报告。");
+      notification.warning({
+        description: "系统需要先把提交索引到本地 SQLite，才能生成报告。",
+        message: "请先同步仓库",
+      });
       return;
     }
 
-    setStatus(null);
-    setError(null);
     setCurrentAction("report");
 
     startTransition(async () => {
@@ -230,12 +238,18 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       };
 
       if (!response.ok || !payload.report) {
-        setError(payload.error ?? "报告生成失败");
+        notification.error({
+          description: payload.error ?? "报告生成失败，请稍后重试。",
+          message: "报告生成失败",
+        });
         setCurrentAction(null);
         return;
       }
 
-      setStatus("报告已生成，正在跳转到结果页。");
+      notification.success({
+        description: "结果已生成，正在跳转到报告详情页。",
+        message: "报告已生成",
+      });
       setCurrentAction(null);
       router.refresh();
       router.push(`/reports/${payload.report.id}`);
@@ -243,8 +257,6 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   };
 
   const removeProject = () => {
-    setStatus(null);
-    setError(null);
     setCurrentAction("delete-project");
 
     startTransition(async () => {
@@ -256,19 +268,24 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "删除项目失败");
+        notification.error({
+          description: payload.error ?? "删除项目失败，请稍后重试。",
+          message: "删除项目失败",
+        });
         setCurrentAction(null);
         return;
       }
 
+      notification.success({
+        description: "项目、同步记录和历史报告已一并移除。",
+        message: "项目已删除",
+      });
       router.push("/");
       router.refresh();
     });
   };
 
   const removeReport = (reportId: string) => {
-    setStatus(null);
-    setError(null);
     setCurrentAction(`delete-report:${reportId}`);
 
     startTransition(async () => {
@@ -280,12 +297,18 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       };
 
       if (!response.ok) {
-        setError(payload.error ?? "删除报告失败");
+        notification.error({
+          description: payload.error ?? "删除报告失败，请稍后重试。",
+          message: "删除报告失败",
+        });
         setCurrentAction(null);
         return;
       }
 
-      setStatus("报告已删除。");
+      notification.success({
+        description: "当前报告已移除，不会影响项目配置与同步数据。",
+        message: "报告已删除",
+      });
       setCurrentAction(null);
       router.refresh();
     });
@@ -415,9 +438,6 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                 type="info"
               />
             ) : null}
-
-            {status ? <Alert showIcon title={status} type="success" /> : null}
-            {error ? <Alert showIcon title={error} type="error" /> : null}
           </Space>
         </Card>
       </section>
@@ -461,7 +481,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             <Tag>{report.status}</Tag>
                           </Space>
                           <Title level={5} style={{ marginBottom: 0, marginTop: 12 }}>
-                            {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)}
+                            {report.createdAtLabel}
                           </Title>
                           <Paragraph style={{ marginBottom: 0, marginTop: 6 }} type="secondary">
                             共 {report.totalCommits} 条提交。最新结果会优先突出显示，方便你快速回看真实内容。
@@ -483,6 +503,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             title="确认删除这份报告？"
                           >
                             <Button
+                              className="report-card__danger"
                               danger
                               icon={<DeleteOutlined />}
                               loading={currentAction === `delete-report:${report.id}`}
@@ -582,7 +603,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             <Text strong>{syncRun.commitCount} 条提交</Text>
                           </Space>
                           <Text type="secondary">
-                            {formatLocalDateTime(syncRun.startedAt, "zh-CN", project.timezone)}
+                            {syncRun.startedAtLabel}
                           </Text>
                         </div>
                         {syncRun.message ? (
