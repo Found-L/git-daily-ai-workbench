@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
 
@@ -8,6 +7,7 @@ import {
   ArrowLeftOutlined,
   BranchesOutlined,
   DownloadOutlined,
+  EditOutlined,
   FileTextOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
@@ -16,6 +16,8 @@ import {
   Button,
   Card,
   Col,
+  Descriptions,
+  Drawer,
   Empty,
   Row,
   Select,
@@ -95,6 +97,14 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentAction, setCurrentAction] = useState<"sync" | "report" | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const hasSyncedData = project.syncRuns.length > 0;
+  const hasAiConfig = Boolean(
+    project.llmProfile?.baseUrl && project.llmProfile?.apiKey && project.llmProfile?.model,
+  );
+  const authorFilters = [...project.authorRule.names, ...project.authorRule.emails];
+  const latestReport = project.reports[0];
 
   const runSync = () => {
     setStatus(null);
@@ -115,13 +125,18 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
         return;
       }
 
-      setStatus("仓库同步完成");
+      setStatus("仓库同步完成，提交索引已更新。");
       setCurrentAction(null);
       router.refresh();
     });
   };
 
   const generateReport = () => {
+    if (!hasSyncedData) {
+      setError("请先同步仓库。系统需要先把提交索引到本地 SQLite，才能生成报告。");
+      return;
+    }
+
     setStatus(null);
     setError(null);
     setCurrentAction("report");
@@ -150,7 +165,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
         return;
       }
 
-      setStatus("报告已生成，正在跳转到详情页");
+      setStatus("报告已生成，正在跳转到结果页。");
       setCurrentAction(null);
       router.refresh();
       router.push(`/reports/${payload.report.id}`);
@@ -160,28 +175,30 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   return (
     <main className="page-wrap">
       <section className="page-section">
-        <Card styles={{ body: { padding: 32 } }}>
+        <Card className="hero-card" styles={{ body: { padding: 32 } }}>
           <Space orientation="vertical" size={20} style={{ width: "100%" }}>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/")} type="link">
               返回项目列表
             </Button>
 
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-                  {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
-                </Tag>
+                <Space size={[8, 8]} wrap>
+                  <Tag color={project.sourceType === "local" ? "blue" : "gold"}>
+                    {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
+                  </Tag>
+                  <Tag color={hasAiConfig ? "green" : "default"}>
+                    {hasAiConfig ? "已配置 AI" : "规则版摘要"}
+                  </Tag>
+                  <Tag color="processing">{project.timezone}</Tag>
+                </Space>
+
                 <Title level={2} style={{ marginBottom: 0, marginTop: 12 }}>
                   {project.name}
                 </Title>
+
                 <Paragraph style={{ marginBottom: 0, marginTop: 12 }} type="secondary">
-                  分支规则：
-                  {project.branchRule.mode === "all" ? "全部分支" : project.branchRule.selectedBranches.join(", ")}
-                  {" · "}
-                  作者规则：
-                  {project.authorRule.names.length + project.authorRule.emails.length > 0
-                    ? [...project.authorRule.names, ...project.authorRule.emails].join(", ")
-                    : "全部作者"}
+                  这里只展示生成报告必需的关键信息。筛选规则、AI 配置和仓库来源都收进编辑抽屉里，避免主视图过长。
                 </Paragraph>
               </div>
 
@@ -199,11 +216,11 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                   <Select
                     onChange={(value) => setReportPeriod(value)}
                     options={periodOptions.map((item) => ({ ...item }))}
-                    style={{ minWidth: 128 }}
+                    style={{ minWidth: 132 }}
                     value={reportPeriod}
                   />
                   <Button
-                    disabled={currentAction !== null}
+                    disabled={currentAction !== null || !hasSyncedData}
                     icon={<FileTextOutlined />}
                     loading={currentAction === "report"}
                     onClick={generateReport}
@@ -212,8 +229,30 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                     {currentAction === "report" ? "生成中..." : "生成报告"}
                   </Button>
                 </Space.Compact>
+
+                <Button icon={<EditOutlined />} onClick={() => setIsEditOpen(true)} size="large">
+                  修改配置
+                </Button>
               </Space>
             </div>
+
+            {!hasSyncedData ? (
+              <Alert
+                description="首次生成前必须先同步仓库。系统只会把提交元数据索引到本地 SQLite；本地仓库不会复制工作区，远程仓库会更新本地缓存仓库。"
+                title="当前还没有同步记录"
+                showIcon
+                type="warning"
+              />
+            ) : null}
+
+            {!hasAiConfig ? (
+              <Alert
+                description="当前未配置 Base URL、模型和 API Key。点击“生成报告”时会自动回退到规则版 Markdown 摘要。Temperature 只影响措辞风格，不影响事实来源。"
+                title="AI 配置为空时会走规则版摘要"
+                showIcon
+                type="info"
+              />
+            ) : null}
 
             {status ? <Alert showIcon title={status} type="success" /> : null}
             {error ? <Alert showIcon title={error} type="error" /> : null}
@@ -223,133 +262,146 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
 
       <section className="page-section">
         <Row gutter={[24, 24]}>
-          <Col xs={24} xl={14}>
+          <Col xs={24} xl={15}>
             <Card
-              styles={{ body: { padding: 32 } }}
-              title={<Title level={3} style={{ margin: 0 }}>项目配置</Title>}
+              title="最近报告"
+              extra={
+                latestReport ? (
+                  <Button
+                    href={`/api/reports/${latestReport.id}/markdown`}
+                    icon={<DownloadOutlined />}
+                    type="link"
+                  >
+                    下载最新 Markdown
+                  </Button>
+                ) : null
+              }
             >
-              <Paragraph style={{ marginTop: 0 }} type="secondary">
-                编辑仓库源、作者过滤器以及 AI 参数，保存后会直接影响后续同步和报告生成。
-              </Paragraph>
+              <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                {project.reports.length > 0 ? (
+                  project.reports.map((report, index) => (
+                    <Card className="report-picker-card" key={report.id} size="small">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <Space size={[8, 8]} wrap>
+                            <Tag color={index === 0 ? "processing" : "default"}>
+                              {index === 0 ? "最新结果" : "历史结果"}
+                            </Tag>
+                            <Tag color="blue">{getPeriodLabel(report.period)}</Tag>
+                            <Tag>{report.status}</Tag>
+                          </Space>
+                          <Title level={5} style={{ marginBottom: 0, marginTop: 12 }}>
+                            {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)}
+                          </Title>
+                          <Paragraph style={{ marginBottom: 0, marginTop: 6 }} type="secondary">
+                            共 {report.totalCommits} 条提交，适合先看正文，再下翻查看统计与引用。
+                          </Paragraph>
+                        </div>
 
-              <ProjectForm
-                compact
-                defaultTimezone={project.timezone}
-                initialValues={{
-                  id: project.id,
-                  name: project.name,
-                  sourceType: project.sourceType as "local" | "remote",
-                  localPath: project.repoSource?.localPath ?? "",
-                  remoteUrl: project.repoSource?.remoteUrl ?? "",
-                  cacheDir: project.repoSource?.cacheDir ?? "",
-                  branchMode: project.branchRule.mode,
-                  selectedBranches: project.branchRule.selectedBranches.join("\n"),
-                  authorNames: project.authorRule.names.join(", "),
-                  authorEmails: project.authorRule.emails.join(", "),
-                  defaultPeriod: project.defaultPeriod,
-                  timezone: project.timezone,
-                  llmBaseUrl: project.llmProfile?.baseUrl ?? "",
-                  llmApiKey: project.llmProfile?.apiKey ?? "",
-                  llmModel: project.llmProfile?.model ?? "",
-                  llmTemperature: `${project.llmProfile?.temperature ?? 0.3}`,
-                }}
-                submitLabel="更新项目配置"
-              />
+                        <Space wrap>
+                          <Button onClick={() => router.push(`/reports/${report.id}`)} type="primary">
+                            查看结果
+                          </Button>
+                          <Button href={`/api/reports/${report.id}/markdown`}>下载 Markdown</Button>
+                        </Space>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <Empty
+                    description="还没有生成过报告。先同步仓库，再按顶部的周期选择生成日报、周报或月报。"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )}
+              </Space>
             </Card>
           </Col>
 
-          <Col xs={24} xl={10}>
+          <Col xs={24} xl={9}>
             <Space orientation="vertical" size="large" style={{ width: "100%" }}>
-              <Card title="运行状态">
-                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-                  <Card size="small">
-                    <Space orientation="vertical" size={4}>
-                      <Text type="secondary">仓库地址</Text>
-                      <Text>{project.repoSource?.localPath ?? project.repoSource?.remoteUrl ?? "未配置"}</Text>
-                    </Space>
-                  </Card>
+              <Card title="项目概览">
+                <Descriptions
+                  colon={false}
+                  column={1}
+                  items={[
+                    {
+                      key: "repo",
+                      label: "仓库地址",
+                      children:
+                        project.repoSource?.localPath ??
+                        project.repoSource?.remoteUrl ??
+                        "未配置",
+                    },
+                    {
+                      key: "branches",
+                      label: "分支范围",
+                      children:
+                        project.branchRule.mode === "all"
+                          ? "全部分支"
+                          : project.branchRule.selectedBranches.join(", "),
+                    },
+                    {
+                      key: "authors",
+                      label: "作者过滤",
+                      children:
+                        authorFilters.length > 0 ? authorFilters.join(", ") : "全部作者",
+                    },
+                    {
+                      key: "ai",
+                      label: "AI 配置",
+                      children: hasAiConfig
+                        ? `${project.llmProfile?.model} · ${maskSecret(project.llmProfile?.apiKey)}`
+                        : "未配置，将回退到规则版摘要",
+                    },
+                    {
+                      key: "temperature",
+                      label: "Temperature",
+                      children: hasAiConfig
+                        ? `${project.llmProfile?.temperature ?? 0.3}（仅影响措辞发散度）`
+                        : "未设置",
+                    },
+                  ]}
+                />
 
-                  <Card size="small">
-                    <Space orientation="vertical" size={4}>
-                      <Text type="secondary">AI 模型</Text>
-                      <Text>
-                        {project.llmProfile?.model ?? "未配置"} · {maskSecret(project.llmProfile?.apiKey)}
-                      </Text>
-                    </Space>
-                  </Card>
+                <Card className="helper-card" size="small" style={{ marginTop: 16 }}>
+                  <Space orientation="vertical" size={8}>
+                    <Text strong>为什么必须先同步？</Text>
+                    <Text type="secondary">
+                      生成报告依赖本地 SQLite 中的提交索引。同步并不是把仓库整体塞进内存，而是把提交元数据整理进数据库，后续生成才有数据可用。
+                    </Text>
+                  </Space>
+                </Card>
 
-                  <Card size="small">
-                    <Space orientation="vertical" size="small" style={{ width: "100%" }}>
-                      <Text type="secondary">最近发现的分支</Text>
-                      <Space size={[8, 8]} wrap>
-                        {project.branchSnapshot.length > 0 ? (
-                          project.branchSnapshot.map((branch) => (
-                            <Tag icon={<BranchesOutlined />} key={branch} style={{ marginInlineEnd: 0 }}>
-                              {branch}
-                            </Tag>
-                          ))
-                        ) : (
-                          <Text type="secondary">尚未同步，暂时没有分支快照。</Text>
-                        )}
-                      </Space>
-                    </Space>
-                  </Card>
-                </Space>
+                {project.branchSnapshot.length > 0 ? (
+                  <Space size={[8, 8]} style={{ marginTop: 16 }} wrap>
+                    {project.branchSnapshot.map((branch) => (
+                      <Tag icon={<BranchesOutlined />} key={branch}>
+                        {branch}
+                      </Tag>
+                    ))}
+                  </Space>
+                ) : null}
               </Card>
 
-              <Card
-                title="报告历史"
-                extra={
-                  project.reports[0] ? (
-                    <Button href={`/api/reports/${project.reports[0].id}/markdown`} icon={<DownloadOutlined />} type="link">
-                      下载最近 Markdown
-                    </Button>
-                  ) : null
-                }
-              >
-                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-                  {project.reports.length > 0 ? (
-                    project.reports.map((report) => (
-                      <Link href={`/reports/${report.id}`} key={report.id}>
-                        <Card hoverable size="small">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <Title level={5} style={{ marginBottom: 0 }}>
-                                {getPeriodLabel(report.period)}
-                              </Title>
-                              <Paragraph style={{ marginBottom: 0, marginTop: 4 }} type="secondary">
-                                {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)} · {report.totalCommits} 条提交
-                              </Paragraph>
-                            </div>
-                            <Tag color="blue">{report.status}</Tag>
-                          </div>
-                        </Card>
-                      </Link>
-                    ))
-                  ) : (
-                    <Empty
-                      description="还没有生成过报告。可以先同步仓库，再点击“生成报告”。"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    />
-                  )}
-                </Space>
-              </Card>
-
-              <Card title="同步历史">
+              <Card title="最近同步">
                 <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                   {project.syncRuns.length > 0 ? (
-                    project.syncRuns.map((syncRun) => (
-                      <Card key={syncRun.id} size="small">
-                        <Space orientation="vertical" size={4} style={{ width: "100%" }}>
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <Text strong>{syncRun.status}</Text>
-                            <Tag color="processing">{syncRun.commitCount} 条提交</Tag>
-                          </div>
+                    project.syncRuns.map((syncRun, index) => (
+                      <Card className="metric-card" key={syncRun.id} size="small">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <Space size={[8, 8]} wrap>
+                            <Tag color={index === 0 ? "processing" : "default"}>{syncRun.status}</Tag>
+                            <Text strong>{syncRun.commitCount} 条提交</Text>
+                          </Space>
                           <Text type="secondary">
                             {formatLocalDateTime(syncRun.startedAt, "zh-CN", project.timezone)}
                           </Text>
-                          {syncRun.message ? <Paragraph style={{ marginBottom: 0 }}>{syncRun.message}</Paragraph> : null}
-                        </Space>
+                        </div>
+                        {syncRun.message ? (
+                          <Paragraph style={{ marginBottom: 0, marginTop: 10 }} type="secondary">
+                            {syncRun.message}
+                          </Paragraph>
+                        ) : null}
                       </Card>
                     ))
                   ) : (
@@ -361,6 +413,39 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
           </Col>
         </Row>
       </section>
+
+      <Drawer
+        destroyOnClose
+        onClose={() => setIsEditOpen(false)}
+        open={isEditOpen}
+        size="large"
+        title="修改项目配置"
+      >
+        <ProjectForm
+          compact
+          defaultTimezone={project.timezone}
+          initialValues={{
+            id: project.id,
+            name: project.name,
+            sourceType: project.sourceType as "local" | "remote",
+            localPath: project.repoSource?.localPath ?? "",
+            remoteUrl: project.repoSource?.remoteUrl ?? "",
+            cacheDir: project.repoSource?.cacheDir ?? "",
+            branchMode: project.branchRule.mode,
+            selectedBranches: project.branchRule.selectedBranches.join("\n"),
+            authorNames: project.authorRule.names.join(", "),
+            authorEmails: project.authorRule.emails.join(", "),
+            defaultPeriod: project.defaultPeriod,
+            timezone: project.timezone,
+            llmBaseUrl: project.llmProfile?.baseUrl ?? "",
+            llmApiKey: project.llmProfile?.apiKey ?? "",
+            llmModel: project.llmProfile?.model ?? "",
+            llmTemperature: project.llmProfile?.temperature ?? 0.3,
+          }}
+          onSaved={() => setIsEditOpen(false)}
+          submitLabel="更新项目配置"
+        />
+      </Drawer>
     </main>
   );
 }
