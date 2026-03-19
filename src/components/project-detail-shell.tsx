@@ -2,10 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
+import dayjs, { type Dayjs } from "dayjs";
+import { getISOWeek, getISOWeekYear } from "date-fns";
 
 import {
   ArrowLeftOutlined,
   BranchesOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
   FileTextOutlined,
@@ -16,9 +19,11 @@ import {
   Button,
   Card,
   Col,
+  DatePicker,
   Descriptions,
   Drawer,
   Empty,
+  Popconfirm,
   Row,
   Select,
   Space,
@@ -91,12 +96,65 @@ function getPeriodLabel(period: string) {
   return "月报";
 }
 
+function getReferenceInputLabel(period: "day" | "week" | "month") {
+  if (period === "day") {
+    return "指定日期";
+  }
+
+  if (period === "week") {
+    return "指定周";
+  }
+
+  return "指定月份";
+}
+
+function formatReferenceValue(period: "day" | "week" | "month", value: Dayjs) {
+  if (period === "day") {
+    return value.format("YYYY-MM-DD");
+  }
+
+  if (period === "month") {
+    return value.format("YYYY-MM");
+  }
+
+  const date = value.toDate();
+  return `${getISOWeekYear(date)}-W${String(getISOWeek(date)).padStart(2, "0")}`;
+}
+
+function createCurrentReference(period: "day" | "week" | "month", timezone: string) {
+  const currentDate = dayjs(new Date().toLocaleString("sv-SE", { timeZone: timezone }).replace(" ", "T"));
+
+  return {
+    pickerValue: currentDate,
+    referenceValue: formatReferenceValue(period, currentDate),
+  };
+}
+
+function getReferencePickerFormat(period: "day" | "week" | "month") {
+  if (period === "day") {
+    return "YYYY-MM-DD";
+  }
+
+  if (period === "month") {
+    return "YYYY-MM";
+  }
+
+  return (value: Dayjs) => formatReferenceValue("week", value);
+}
+
 export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   const router = useRouter();
+  const initialReference = createCurrentReference(project.defaultPeriod, project.timezone);
   const [reportPeriod, setReportPeriod] = useState(project.defaultPeriod);
+  const [referenceValue, setReferenceValue] = useState(initialReference.referenceValue);
+  const [referencePickerValue, setReferencePickerValue] = useState<Dayjs | null>(
+    initialReference.pickerValue,
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentAction, setCurrentAction] = useState<"sync" | "report" | null>(null);
+  const [currentAction, setCurrentAction] = useState<
+    "sync" | "report" | "delete-project" | string | null
+  >(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const hasSyncedData = project.syncRuns.length > 0;
@@ -105,6 +163,17 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   );
   const authorFilters = [...project.authorRule.names, ...project.authorRule.emails];
   const latestReport = project.reports[0];
+
+  const resetReferenceToCurrent = (period = reportPeriod) => {
+    const current = createCurrentReference(period, project.timezone);
+    setReferencePickerValue(current.pickerValue);
+    setReferenceValue(current.referenceValue);
+  };
+
+  const handleReferenceChange = (value: Dayjs | null) => {
+    setReferencePickerValue(value);
+    setReferenceValue(value ? formatReferenceValue(reportPeriod, value) : "");
+  };
 
   const runSync = () => {
     setStatus(null);
@@ -149,6 +218,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
         },
         body: JSON.stringify({
           period: reportPeriod,
+          reference: referenceValue || undefined,
         }),
       });
 
@@ -172,17 +242,70 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
     });
   };
 
+  const removeProject = () => {
+    setStatus(null);
+    setError(null);
+    setCurrentAction("delete-project");
+
+    startTransition(async () => {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "删除项目失败");
+        setCurrentAction(null);
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    });
+  };
+
+  const removeReport = (reportId: string) => {
+    setStatus(null);
+    setError(null);
+    setCurrentAction(`delete-report:${reportId}`);
+
+    startTransition(async () => {
+      const response = await fetch(`/api/reports/${reportId}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "删除报告失败");
+        setCurrentAction(null);
+        return;
+      }
+
+      setStatus("报告已删除。");
+      setCurrentAction(null);
+      router.refresh();
+    });
+  };
+
   return (
     <main className="page-wrap">
       <section className="page-section">
         <Card className="hero-card" styles={{ body: { padding: 32 } }}>
           <Space orientation="vertical" size={20} style={{ width: "100%" }}>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/")} type="link">
+            <Button
+              className="return-button"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/")}
+            >
               返回项目列表
             </Button>
 
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-              <div>
+            <div className="hero-header">
+              <div className="hero-header__content">
                 <Space size={[8, 8]} wrap>
                   <Tag color={project.sourceType === "local" ? "blue" : "gold"}>
                     {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
@@ -198,49 +321,88 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                 </Title>
 
                 <Paragraph style={{ marginBottom: 0, marginTop: 12 }} type="secondary">
-                  这里只展示生成报告必需的关键信息。筛选规则、AI 配置和仓库来源都收进编辑抽屉里，避免主视图过长。
+                  这里只展示生成报告必需的关键信息。你可以直接按指定日期、周或月份生成，也可以在右侧管理历史报告。
                 </Paragraph>
               </div>
 
-              <Space size="middle" wrap>
-                <Button
-                  disabled={currentAction !== null}
-                  icon={<SyncOutlined spin={currentAction === "sync"} />}
-                  onClick={runSync}
-                  size="large"
-                >
-                  {currentAction === "sync" ? "同步中..." : "同步仓库"}
-                </Button>
-
-                <Space.Compact size="large">
+              <div className="hero-header__panel">
+                <div className="hero-toolbar">
                   <Select
-                    onChange={(value) => setReportPeriod(value)}
+                    onChange={(value) => {
+                      setReportPeriod(value);
+                      resetReferenceToCurrent(value);
+                    }}
                     options={periodOptions.map((item) => ({ ...item }))}
-                    style={{ minWidth: 132 }}
+                    size="large"
+                    style={{ minWidth: 116 }}
                     value={reportPeriod}
                   />
+                  <DatePicker
+                    allowClear={false}
+                    format={getReferencePickerFormat(reportPeriod)}
+                    onChange={handleReferenceChange}
+                    picker={reportPeriod === "day" ? undefined : reportPeriod}
+                    placeholder={getReferenceInputLabel(reportPeriod)}
+                    size="large"
+                    style={{ minWidth: 210 }}
+                    value={referencePickerValue}
+                  />
+                  <Button onClick={() => resetReferenceToCurrent()} size="large">
+                    当前
+                  </Button>
                   <Button
                     disabled={currentAction !== null || !hasSyncedData}
                     icon={<FileTextOutlined />}
                     loading={currentAction === "report"}
                     onClick={generateReport}
+                    size="large"
                     type="primary"
                   >
                     {currentAction === "report" ? "生成中..." : "生成报告"}
                   </Button>
-                </Space.Compact>
+                </div>
 
-                <Button icon={<EditOutlined />} onClick={() => setIsEditOpen(true)} size="large">
-                  修改配置
-                </Button>
-              </Space>
+                <div className="hero-toolbar">
+                  <Button
+                    disabled={currentAction !== null}
+                    icon={<SyncOutlined spin={currentAction === "sync"} />}
+                    onClick={runSync}
+                    size="large"
+                  >
+                    {currentAction === "sync" ? "同步中..." : "同步仓库"}
+                  </Button>
+                  <Button icon={<EditOutlined />} onClick={() => setIsEditOpen(true)} size="large">
+                    修改配置
+                  </Button>
+                  <Popconfirm
+                    description="会连同同步记录和历史报告一起删除，无法恢复。"
+                    okButtonProps={{ danger: true }}
+                    okText="删除"
+                    onConfirm={removeProject}
+                    title="确认删除这个项目？"
+                  >
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={currentAction === "delete-project"}
+                      size="large"
+                    >
+                      删除项目
+                    </Button>
+                  </Popconfirm>
+                </div>
+              </div>
             </div>
+
+            <Text type="secondary">
+              当前默认定位到本期的 {getReferenceInputLabel(reportPeriod)}；你也可以切换成历史某一天、某一周或某个月后再生成报告。
+            </Text>
 
             {!hasSyncedData ? (
               <Alert
                 description="首次生成前必须先同步仓库。系统只会把提交元数据索引到本地 SQLite；本地仓库不会复制工作区，远程仓库会更新本地缓存仓库。"
-                title="当前还没有同步记录"
                 showIcon
+                title="当前还没有同步记录"
                 type="warning"
               />
             ) : null}
@@ -248,8 +410,8 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
             {!hasAiConfig ? (
               <Alert
                 description="当前未配置 Base URL、模型和 API Key。点击“生成报告”时会自动回退到规则版 Markdown 摘要。Temperature 只影响措辞风格，不影响事实来源。"
-                title="AI 配置为空时会走规则版摘要"
                 showIcon
+                title="AI 配置为空时会走规则版摘要"
                 type="info"
               />
             ) : null}
@@ -280,8 +442,16 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
               <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                 {project.reports.length > 0 ? (
                   project.reports.map((report, index) => (
-                    <Card className="report-picker-card" key={report.id} size="small">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <Card
+                      className={
+                        index === 0
+                          ? "report-picker-card report-picker-card--latest"
+                          : "report-picker-card"
+                      }
+                      key={report.id}
+                      size="small"
+                    >
+                      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
                         <div>
                           <Space size={[8, 8]} wrap>
                             <Tag color={index === 0 ? "processing" : "default"}>
@@ -294,22 +464,40 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)}
                           </Title>
                           <Paragraph style={{ marginBottom: 0, marginTop: 6 }} type="secondary">
-                            共 {report.totalCommits} 条提交，适合先看正文，再下翻查看统计与引用。
+                            共 {report.totalCommits} 条提交。最新结果会优先突出显示，方便你快速回看真实内容。
                           </Paragraph>
                         </div>
 
-                        <Space wrap>
-                          <Button onClick={() => router.push(`/reports/${report.id}`)} type="primary">
-                            查看结果
-                          </Button>
-                          <Button href={`/api/reports/${report.id}/markdown`}>下载 Markdown</Button>
-                        </Space>
-                      </div>
+                        <div className="report-card__footer">
+                          <Space wrap>
+                            <Button onClick={() => router.push(`/reports/${report.id}`)} type="primary">
+                              查看结果
+                            </Button>
+                            <Button href={`/api/reports/${report.id}/markdown`}>下载 Markdown</Button>
+                          </Space>
+                          <Popconfirm
+                            description="删除后只移除这次生成结果，不影响项目和同步数据。"
+                            okButtonProps={{ danger: true }}
+                            okText="删除"
+                            onConfirm={() => removeReport(report.id)}
+                            title="确认删除这份报告？"
+                          >
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              loading={currentAction === `delete-report:${report.id}`}
+                              type="text"
+                            >
+                              删除报告
+                            </Button>
+                          </Popconfirm>
+                        </div>
+                      </Space>
                     </Card>
                   ))
                 ) : (
                   <Empty
-                    description="还没有生成过报告。先同步仓库，再按顶部的周期选择生成日报、周报或月报。"
+                    description="还没有生成过报告。先同步仓库，再按顶部的周期和日期基准生成日报、周报或月报。"
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                   />
                 )}

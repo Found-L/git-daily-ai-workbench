@@ -39,6 +39,7 @@ export default async function ReportDetailPage({
         branchScope: structured.branchScope,
         authorScope: structured.authorScope,
         totals: structured.totals,
+        dailySummaries: structured.dailySummaries ?? [],
         topAuthors: structured.topAuthors,
         hotspots: structured.hotspots,
         commitReferences: structured.commitReferences,

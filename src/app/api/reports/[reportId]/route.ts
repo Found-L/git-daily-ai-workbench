@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getReportDetail, parseStructuredJson } from "@/lib/project-service";
+import { deleteReport, getReportDetail, parseStructuredJson } from "@/lib/project-service";
 
 export async function GET(
   _request: Request,
@@ -34,4 +34,28 @@ export async function GET(
       },
     },
   });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ reportId: string }> },
+) {
+  try {
+    const { reportId } = await params;
+    const report = await deleteReport(reportId);
+
+    return NextResponse.json({
+      ok: true,
+      projectId: report.projectId,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Failed to delete report",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
 }

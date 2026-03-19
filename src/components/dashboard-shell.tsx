@@ -1,23 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useDeferredValue, useState } from "react";
+import { startTransition, useDeferredValue, useState } from "react";
 
 import {
   ArrowRightOutlined,
   ClockCircleOutlined,
+  DeleteOutlined,
   FolderOpenOutlined,
   PlusOutlined,
   RobotOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import {
+  Alert,
   Button,
   Card,
   Col,
   Drawer,
   Empty,
   Input,
+  Popconfirm,
   Row,
   Space,
   Statistic,
@@ -76,7 +79,35 @@ export function DashboardShell({
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const deferredKeyword = useDeferredValue(keyword);
+
+  const removeProject = (projectId: string) => {
+    setStatus(null);
+    setError(null);
+    setPendingDeleteId(projectId);
+
+    startTransition(async () => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "删除项目失败");
+        setPendingDeleteId(null);
+        return;
+      }
+
+      setStatus("项目已删除。");
+      setPendingDeleteId(null);
+      router.refresh();
+    });
+  };
 
   const filteredProjects = projects.filter((project) => {
     const query = deferredKeyword.trim().toLowerCase();
@@ -179,6 +210,23 @@ export function DashboardShell({
             />
           </div>
 
+          {status ? (
+            <Alert
+              showIcon
+              style={{ marginTop: 20 }}
+              title={status}
+              type="success"
+            />
+          ) : null}
+          {error ? (
+            <Alert
+              showIcon
+              style={{ marginTop: 20 }}
+              title={error}
+              type="error"
+            />
+          ) : null}
+
           {filteredProjects.length === 0 ? (
             <Empty
               description="当前没有匹配的项目。可以调整搜索词，或者先新增一个仓库配置。"
@@ -266,23 +314,44 @@ export function DashboardShell({
                         </Col>
                       </Row>
 
-                      <Space size="middle" wrap>
-                        <Button
-                          icon={<ArrowRightOutlined />}
-                          onClick={() => router.push(`/projects/${project.id}`)}
-                          type="primary"
-                        >
-                          打开项目
-                        </Button>
-                        {project.lastReport ? (
-                          <Button onClick={() => router.push(`/reports/${project.lastReport?.id}`)}>
-                            查看最近报告
+                      <div className="project-card__footer">
+                        <Space className="project-card__footer-main" size="middle" wrap>
+                          <Button
+                            icon={<ArrowRightOutlined />}
+                            onClick={() => router.push(`/projects/${project.id}`)}
+                            type="primary"
+                          >
+                            打开项目
                           </Button>
-                        ) : null}
-                        <Text type="secondary">
-                          最近更新：{formatLocalDateTime(project.updatedAt, "zh-CN", project.timezone)}
-                        </Text>
-                      </Space>
+                          {project.lastReport ? (
+                            <Button onClick={() => router.push(`/reports/${project.lastReport?.id}`)}>
+                              查看最近报告
+                            </Button>
+                          ) : null}
+                        </Space>
+
+                        <Space className="project-card__footer-side" size="small" wrap>
+                          <Text type="secondary">
+                            最近更新：{formatLocalDateTime(project.updatedAt, "zh-CN", project.timezone)}
+                          </Text>
+                          <Popconfirm
+                            description="会连同同步记录和历史报告一起删除，无法恢复。"
+                            okButtonProps={{ danger: true }}
+                            okText="删除"
+                            onConfirm={() => removeProject(project.id)}
+                            title="确认删除这个项目？"
+                          >
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              loading={pendingDeleteId === project.id}
+                              type="text"
+                            >
+                              删除项目
+                            </Button>
+                          </Popconfirm>
+                        </Space>
+                      </div>
                     </Space>
                   </Card>
                 </Col>

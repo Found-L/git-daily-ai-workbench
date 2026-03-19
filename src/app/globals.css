@@ -146,12 +146,103 @@ textarea {
   flex-wrap: wrap;
 }
 
+.project-card__footer,
+.report-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.project-card__footer-main,
+.project-card__footer-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .report-picker-card {
   border-color: rgba(22, 73, 160, 0.12);
 }
 
+.report-picker-card--latest {
+  border-color: rgba(22, 73, 160, 0.28);
+  box-shadow: 0 16px 36px rgba(22, 73, 160, 0.12);
+}
+
 .helper-card {
   background: rgba(255, 248, 239, 0.78);
+}
+
+.return-button.ant-btn {
+  align-self: flex-start;
+  height: auto;
+  padding: 0.35rem 0.7rem;
+  color: rgba(22, 73, 160, 0.88);
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.return-button.ant-btn:hover {
+  background: rgba(22, 73, 160, 0.08) !important;
+  border-color: transparent !important;
+  color: var(--accent) !important;
+}
+
+.hero-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem 2rem;
+}
+
+.hero-header__content {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.hero-header__panel {
+  display: flex;
+  flex: 0 1 560px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.9rem;
+  min-width: min(100%, 320px);
+}
+
+.hero-header__panel--compact {
+  max-width: 460px;
+}
+
+.hero-header__meta {
+  text-align: right;
+}
+
+.hero-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.generate-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.generate-controls .ant-picker {
+  min-width: 210px;
 }
 
 .soft-collapse {
@@ -176,11 +267,30 @@ textarea {
   padding: 0;
 }
 
+.report-article-card--focus {
+  border-color: rgba(22, 73, 160, 0.22);
+  box-shadow: 0 20px 52px rgba(22, 73, 160, 0.12);
+}
+
+.report-article-card--focus .ant-card-head {
+  background: linear-gradient(90deg, rgba(226, 238, 255, 0.9), rgba(255, 247, 236, 0.9));
+}
+
 .report-article {
   max-width: 860px;
   margin: 0 auto;
   padding: 2rem 2rem 2.5rem;
   overflow-wrap: anywhere;
+}
+
+.daily-summary-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--foreground);
+}
+
+.daily-summary-list li + li {
+  margin-top: 0.5rem;
 }
 
 .report-summary-grid {
@@ -191,6 +301,34 @@ textarea {
 
 .break-all {
   word-break: break-all;
+}
+
+.commit-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.commit-card__subject {
+  display: block;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.commit-card__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.wrap-tag.ant-tag {
+  max-width: 100%;
+  height: auto;
+  margin-inline-end: 0;
+  padding-block: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .markdown-body h1,
@@ -215,6 +353,11 @@ textarea {
 .markdown-body ul,
 .markdown-body ol {
   padding-left: 1.3rem;
+}
+
+.markdown-body ol li::marker {
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .markdown-body code {
@@ -250,5 +393,19 @@ textarea {
 
   .report-article {
     padding: 1.25rem 1.1rem 1.8rem;
+  }
+
+  .project-card__footer,
+  .report-card__footer,
+  .hero-header,
+  .hero-header__panel,
+  .hero-toolbar,
+  .generate-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .hero-header__meta {
+    text-align: left;
   }
 }
