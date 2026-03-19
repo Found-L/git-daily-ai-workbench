@@ -3,7 +3,26 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
-import { ArrowLeft, Download, RefreshCw, WandSparkles } from "lucide-react";
+
+import {
+  ArrowLeftOutlined,
+  BranchesOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Empty,
+  Row,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
 
 import { ProjectForm } from "@/components/project-form";
 import { formatLocalDateTime, maskSecret } from "@/lib/utils";
@@ -50,6 +69,14 @@ type ProjectDetail = {
   }>;
 };
 
+const { Paragraph, Text, Title } = Typography;
+
+const periodOptions = [
+  { label: "日报", value: "day" },
+  { label: "周报", value: "week" },
+  { label: "月报", value: "month" },
+] as const;
+
 function getPeriodLabel(period: string) {
   if (period === "day") {
     return "日报";
@@ -73,6 +100,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
     setStatus(null);
     setError(null);
     setCurrentAction("sync");
+
     startTransition(async () => {
       const response = await fetch(`/api/projects/${project.id}/sync`, {
         method: "POST",
@@ -97,6 +125,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
     setStatus(null);
     setError(null);
     setCurrentAction("report");
+
     startTransition(async () => {
       const response = await fetch(`/api/projects/${project.id}/reports/generate`, {
         method: "POST",
@@ -107,6 +136,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
           period: reportPeriod,
         }),
       });
+
       const payload = (await response.json()) as {
         error?: string;
         report?: {
@@ -128,209 +158,208 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   };
 
   return (
-    <main className="page-wrap space-y-8">
-      <section className="panel rounded-[2rem] p-6 lg:p-8">
-        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)]" href="/">
-          <ArrowLeft className="h-4 w-4" />
-          返回项目列表
-        </Link>
+    <main className="page-wrap">
+      <section className="page-section">
+        <Card styles={{ body: { padding: 32 } }}>
+          <Space orientation="vertical" size={20} style={{ width: "100%" }}>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/")} type="link">
+              返回项目列表
+            </Button>
 
-        <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">
-              {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
-            </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-[-0.05em]">{project.name}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-              分支规则：
-              {project.branchRule.mode === "all" ? "全部分支" : project.branchRule.selectedBranches.join(", ")}
-              {" · "}
-              作者规则：
-              {project.authorRule.names.length + project.authorRule.emails.length > 0
-                ? [...project.authorRule.names, ...project.authorRule.emails].join(", ")
-                : "全部作者"}
-            </p>
-          </div>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                  {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
+                </Tag>
+                <Title level={2} style={{ marginBottom: 0, marginTop: 12 }}>
+                  {project.name}
+                </Title>
+                <Paragraph style={{ marginBottom: 0, marginTop: 12 }} type="secondary">
+                  分支规则：
+                  {project.branchRule.mode === "all" ? "全部分支" : project.branchRule.selectedBranches.join(", ")}
+                  {" · "}
+                  作者规则：
+                  {project.authorRule.names.length + project.authorRule.emails.length > 0
+                    ? [...project.authorRule.names, ...project.authorRule.emails].join(", ")
+                    : "全部作者"}
+                </Paragraph>
+              </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-5 py-3 text-sm font-semibold"
-              disabled={currentAction !== null}
-              onClick={runSync}
-              type="button"
-            >
-              <RefreshCw className={`h-4 w-4 ${currentAction === "sync" ? "animate-spin" : ""}`} />
-              {currentAction === "sync" ? "同步中..." : "同步仓库"}
-            </button>
-            <div className="flex items-center gap-3 rounded-full border border-[var(--line)] bg-white/80 px-3 py-2">
-              <select
-                className="bg-transparent text-sm outline-none"
-                onChange={(event) => setReportPeriod(event.target.value as "day" | "week" | "month")}
-                value={reportPeriod}
-              >
-                <option value="day">日报</option>
-                <option value="week">周报</option>
-                <option value="month">月报</option>
-              </select>
-              <button
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-                disabled={currentAction !== null}
-                onClick={generateReport}
-                type="button"
-              >
-                <WandSparkles className="h-4 w-4" />
-                {currentAction === "report" ? "生成中..." : "生成报告"}
-              </button>
+              <Space size="middle" wrap>
+                <Button
+                  disabled={currentAction !== null}
+                  icon={<SyncOutlined spin={currentAction === "sync"} />}
+                  onClick={runSync}
+                  size="large"
+                >
+                  {currentAction === "sync" ? "同步中..." : "同步仓库"}
+                </Button>
+
+                <Space.Compact size="large">
+                  <Select
+                    onChange={(value) => setReportPeriod(value)}
+                    options={periodOptions.map((item) => ({ ...item }))}
+                    style={{ minWidth: 128 }}
+                    value={reportPeriod}
+                  />
+                  <Button
+                    disabled={currentAction !== null}
+                    icon={<FileTextOutlined />}
+                    loading={currentAction === "report"}
+                    onClick={generateReport}
+                    type="primary"
+                  >
+                    {currentAction === "report" ? "生成中..." : "生成报告"}
+                  </Button>
+                </Space.Compact>
+              </Space>
             </div>
-          </div>
-        </div>
 
-        {status ? <p className="mt-4 text-sm font-semibold text-[var(--emerald)]">{status}</p> : null}
-        {error ? <p className="mt-4 text-sm font-semibold text-[var(--accent-deep)]">{error}</p> : null}
+            {status ? <Alert showIcon title={status} type="success" /> : null}
+            {error ? <Alert showIcon title={error} type="error" /> : null}
+          </Space>
+        </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="panel rounded-[2rem] p-6 lg:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">项目配置</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em]">编辑仓库与 AI 参数</h2>
-          <div className="mt-6">
-            <ProjectForm
-              compact
-              defaultTimezone={project.timezone}
-              initialValues={{
-                id: project.id,
-                name: project.name,
-                sourceType: project.sourceType as "local" | "remote",
-                localPath: project.repoSource?.localPath ?? "",
-                remoteUrl: project.repoSource?.remoteUrl ?? "",
-                cacheDir: project.repoSource?.cacheDir ?? "",
-                branchMode: project.branchRule.mode,
-                selectedBranches: project.branchRule.selectedBranches.join("\n"),
-                authorNames: project.authorRule.names.join(", "),
-                authorEmails: project.authorRule.emails.join(", "),
-                defaultPeriod: project.defaultPeriod,
-                timezone: project.timezone,
-                llmBaseUrl: project.llmProfile?.baseUrl ?? "",
-                llmApiKey: project.llmProfile?.apiKey ?? "",
-                llmModel: project.llmProfile?.model ?? "",
-                llmTemperature: `${project.llmProfile?.temperature ?? 0.3}`,
-              }}
-              submitLabel="更新项目配置"
-            />
-          </div>
-        </div>
+      <section className="page-section">
+        <Row gutter={[24, 24]}>
+          <Col xs={24} xl={14}>
+            <Card
+              styles={{ body: { padding: 32 } }}
+              title={<Title level={3} style={{ margin: 0 }}>项目配置</Title>}
+            >
+              <Paragraph style={{ marginTop: 0 }} type="secondary">
+                编辑仓库源、作者过滤器以及 AI 参数，保存后会直接影响后续同步和报告生成。
+              </Paragraph>
 
-        <div className="space-y-6">
-          <section className="panel rounded-[2rem] p-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">运行状态</p>
-            <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">仓库地址</dt>
-                <dd className="mt-2 break-all text-sm text-[var(--foreground)]">
-                  {project.repoSource?.localPath ?? project.repoSource?.remoteUrl ?? "未配置"}
-                </dd>
-              </div>
-              <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">AI 模型</dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {project.llmProfile?.model ?? "未配置"} · {maskSecret(project.llmProfile?.apiKey)}
-                </dd>
-              </div>
-            </dl>
+              <ProjectForm
+                compact
+                defaultTimezone={project.timezone}
+                initialValues={{
+                  id: project.id,
+                  name: project.name,
+                  sourceType: project.sourceType as "local" | "remote",
+                  localPath: project.repoSource?.localPath ?? "",
+                  remoteUrl: project.repoSource?.remoteUrl ?? "",
+                  cacheDir: project.repoSource?.cacheDir ?? "",
+                  branchMode: project.branchRule.mode,
+                  selectedBranches: project.branchRule.selectedBranches.join("\n"),
+                  authorNames: project.authorRule.names.join(", "),
+                  authorEmails: project.authorRule.emails.join(", "),
+                  defaultPeriod: project.defaultPeriod,
+                  timezone: project.timezone,
+                  llmBaseUrl: project.llmProfile?.baseUrl ?? "",
+                  llmApiKey: project.llmProfile?.apiKey ?? "",
+                  llmModel: project.llmProfile?.model ?? "",
+                  llmTemperature: `${project.llmProfile?.temperature ?? 0.3}`,
+                }}
+                submitLabel="更新项目配置"
+              />
+            </Card>
+          </Col>
 
-            <div className="mt-5 rounded-[1.5rem] border border-[var(--line)] bg-white/60 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">最近发现的分支</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {project.branchSnapshot.length > 0 ? (
-                  project.branchSnapshot.map((branch) => (
-                    <span
-                      className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold"
-                      key={branch}
-                    >
-                      {branch}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-[var(--muted)]">尚未同步，暂时没有分支快照。</span>
-                )}
-              </div>
-            </div>
-          </section>
+          <Col xs={24} xl={10}>
+            <Space orientation="vertical" size="large" style={{ width: "100%" }}>
+              <Card title="运行状态">
+                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                  <Card size="small">
+                    <Space orientation="vertical" size={4}>
+                      <Text type="secondary">仓库地址</Text>
+                      <Text>{project.repoSource?.localPath ?? project.repoSource?.remoteUrl ?? "未配置"}</Text>
+                    </Space>
+                  </Card>
 
-          <section className="panel rounded-[2rem] p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">报告历史</p>
-                <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em]">最近生成的报告</h2>
-              </div>
-              {project.reports[0] ? (
-                <Link
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-deep)]"
-                  href={`/api/reports/${project.reports[0].id}/markdown`}
-                >
-                  <Download className="h-4 w-4" />
-                  下载最近 Markdown
-                </Link>
-              ) : null}
-            </div>
+                  <Card size="small">
+                    <Space orientation="vertical" size={4}>
+                      <Text type="secondary">AI 模型</Text>
+                      <Text>
+                        {project.llmProfile?.model ?? "未配置"} · {maskSecret(project.llmProfile?.apiKey)}
+                      </Text>
+                    </Space>
+                  </Card>
 
-            <div className="mt-5 space-y-3">
-              {project.reports.length > 0 ? (
-                project.reports.map((report) => (
-                  <Link
-                    className="block rounded-[1.5rem] border border-[var(--line)] bg-white/70 px-4 py-4 transition hover:border-[var(--accent)]"
-                    href={`/reports/${report.id}`}
-                    key={report.id}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-semibold">{getPeriodLabel(report.period)}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)} · {report.totalCommits} 条提交
-                        </p>
-                      </div>
-                      <span className="rounded-full border border-[var(--line)] px-3 py-1 text-xs font-semibold">
-                        {report.status}
-                      </span>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-[var(--line)] bg-white/40 px-4 py-8 text-sm text-[var(--muted)]">
-                  还没有生成过报告。可以先同步仓库，再点击“生成报告”。
-                </div>
-              )}
-            </div>
-          </section>
+                  <Card size="small">
+                    <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+                      <Text type="secondary">最近发现的分支</Text>
+                      <Space size={[8, 8]} wrap>
+                        {project.branchSnapshot.length > 0 ? (
+                          project.branchSnapshot.map((branch) => (
+                            <Tag icon={<BranchesOutlined />} key={branch} style={{ marginInlineEnd: 0 }}>
+                              {branch}
+                            </Tag>
+                          ))
+                        ) : (
+                          <Text type="secondary">尚未同步，暂时没有分支快照。</Text>
+                        )}
+                      </Space>
+                    </Space>
+                  </Card>
+                </Space>
+              </Card>
 
-          <section className="panel rounded-[2rem] p-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">同步历史</p>
-            <div className="mt-5 space-y-3">
-              {project.syncRuns.length > 0 ? (
-                project.syncRuns.map((syncRun) => (
-                  <div
-                    className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 px-4 py-4"
-                    key={syncRun.id}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{syncRun.status}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {formatLocalDateTime(syncRun.startedAt, "zh-CN", project.timezone)} · {syncRun.commitCount} 条提交
-                        </p>
-                      </div>
-                    </div>
-                    {syncRun.message ? <p className="mt-2 text-sm text-[var(--muted)]">{syncRun.message}</p> : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-[var(--line)] bg-white/40 px-4 py-8 text-sm text-[var(--muted)]">
-                  还没有同步记录。
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
+              <Card
+                title="报告历史"
+                extra={
+                  project.reports[0] ? (
+                    <Button href={`/api/reports/${project.reports[0].id}/markdown`} icon={<DownloadOutlined />} type="link">
+                      下载最近 Markdown
+                    </Button>
+                  ) : null
+                }
+              >
+                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                  {project.reports.length > 0 ? (
+                    project.reports.map((report) => (
+                      <Link href={`/reports/${report.id}`} key={report.id}>
+                        <Card hoverable size="small">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <Title level={5} style={{ marginBottom: 0 }}>
+                                {getPeriodLabel(report.period)}
+                              </Title>
+                              <Paragraph style={{ marginBottom: 0, marginTop: 4 }} type="secondary">
+                                {formatLocalDateTime(report.createdAt, "zh-CN", project.timezone)} · {report.totalCommits} 条提交
+                              </Paragraph>
+                            </div>
+                            <Tag color="blue">{report.status}</Tag>
+                          </div>
+                        </Card>
+                      </Link>
+                    ))
+                  ) : (
+                    <Empty
+                      description="还没有生成过报告。可以先同步仓库，再点击“生成报告”。"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </Space>
+              </Card>
+
+              <Card title="同步历史">
+                <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                  {project.syncRuns.length > 0 ? (
+                    project.syncRuns.map((syncRun) => (
+                      <Card key={syncRun.id} size="small">
+                        <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <Text strong>{syncRun.status}</Text>
+                            <Tag color="processing">{syncRun.commitCount} 条提交</Tag>
+                          </div>
+                          <Text type="secondary">
+                            {formatLocalDateTime(syncRun.startedAt, "zh-CN", project.timezone)}
+                          </Text>
+                          {syncRun.message ? <Paragraph style={{ marginBottom: 0 }}>{syncRun.message}</Paragraph> : null}
+                        </Space>
+                      </Card>
+                    ))
+                  ) : (
+                    <Empty description="还没有同步记录。" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  )}
+                </Space>
+              </Card>
+            </Space>
+          </Col>
+        </Row>
       </section>
     </main>
   );

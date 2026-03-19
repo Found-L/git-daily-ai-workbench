@@ -21,11 +21,12 @@
 
 ```sh
 corepack pnpm install
-corepack pnpm prisma:push
 corepack pnpm dev
 ```
 
 如果你已经在本机启用了 `pnpm`，也可以把上面的 `corepack pnpm` 直接替换成 `pnpm`。
+`pnpm dev` 与 `pnpm build` 会先自动执行一次 `prisma db push --skip-generate`，确保本地 SQLite 文件和表结构已就绪。
+如果你手动修改了 Prisma schema，也可以单独执行 `corepack pnpm prisma:push` 做同步。
 
 ## macOS / Linux
 
@@ -37,7 +38,6 @@ macOS 可参考 Homebrew 方案：
 brew install node git
 corepack enable
 corepack pnpm install
-corepack pnpm prisma:push
 corepack pnpm dev
 ```
 
@@ -51,7 +51,6 @@ Linux 通常使用发行版包管理器或版本管理器安装 Node.js / Git，
 ```powershell
 .\scripts\bootstrap-tooling.ps1
 .\scripts\with-tooling.ps1 pnpm install
-.\scripts\with-tooling.ps1 pnpm prisma:push
 .\scripts\with-tooling.ps1 pnpm dev
 ```
 

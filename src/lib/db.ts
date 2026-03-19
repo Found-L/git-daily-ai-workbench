@@ -1,8 +1,14 @@
+import { mkdirSync } from "node:fs";
+
 import { PrismaClient } from "@prisma/client";
+import { DATABASE_DIR, DATABASE_URL } from "@/lib/paths";
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };
+
+mkdirSync(DATABASE_DIR, { recursive: true });
+process.env.DATABASE_URL = DATABASE_URL;
 
 export const prisma =
   globalForPrisma.prisma ??
