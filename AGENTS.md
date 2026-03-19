@@ -17,14 +17,21 @@
 
 ## 开发命令
 
-- 先注入本地工具链 PATH：
-  - `$env:PATH="D:\AI\git-daily-ai-workbench\.tools\node-v22.14.0-win-x64;D:\AI\git-daily-ai-workbench\.tools\mingit\cmd;D:\AI\git-daily-ai-workbench\.tools\gh\bin;$env:PATH"`
-  - `$env:COREPACK_HOME="D:\AI\git-daily-ai-workbench\.tools\corepack-home"`
-- 安装依赖：`pnpm install`
-- 推送数据库 schema：`pnpm prisma:push`
-- 本地开发：`pnpm dev`
-- 校验：`pnpm lint`、`pnpm test`
-- E2E：`pnpm test:e2e`
+- 首选系统工具链：Node.js 22 LTS（或 >= 20.9）+ Git。
+- `corepack pnpm ...` 这组命令按跨平台约定维护，默认适用于 Windows、macOS、Linux。
+- `pnpm` 建议通过 Corepack 运行，避免要求全局安装：
+  - 安装依赖：`corepack pnpm install`
+  - 推送数据库 schema：`corepack pnpm prisma:push`
+  - 本地开发：`corepack pnpm dev`
+  - 校验：`corepack pnpm lint`、`corepack pnpm test`
+  - E2E：`corepack pnpm test:e2e`
+- macOS / Linux 默认依赖系统安装的 Node.js / Git，不维护 repo-local `*.sh` bootstrap 脚本。
+- `scripts/*.ps1` 仅作为 Windows 下的 repo-local 便携工具链入口，不作为 macOS / Linux 的默认方案。
+- Windows 机器如果缺少系统级 Node.js / Git，可选使用 repo-local 便携工具链：
+  - `.\scripts\bootstrap-tooling.ps1`
+  - `.\scripts\with-tooling.ps1 pnpm install`
+  - `.\scripts\with-tooling.ps1 pnpm prisma:push`
+  - `.\scripts\with-tooling.ps1 pnpm dev`
 
 ## 实现边界
 
@@ -50,5 +57,5 @@
 - 默认分支为 `main`。
 - 功能分支统一使用 `codex/<task>` 前缀。
 - 不要重置或覆盖不属于当前任务的用户修改。
-- 提交前至少通过 `pnpm lint` 与 `pnpm test`。
+- 提交前至少通过 `corepack pnpm lint` 与 `corepack pnpm test`。
 - 需要推送 GitHub 时优先使用 `gh` 或标准 `git` 非交互命令。
