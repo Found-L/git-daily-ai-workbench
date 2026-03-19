@@ -48,6 +48,16 @@ export type CommitRecordView = {
   refNames: string[];
 };
 
+export type StructuredDailySummary = {
+  date: string;
+  weekday: string;
+  label: string;
+  commitCount: number;
+  additions: number;
+  deletions: number;
+  items: string[];
+};
+
 export type StructuredReport = {
   periodLabel: string;
   period: ReportPeriod;
@@ -64,6 +74,7 @@ export type StructuredReport = {
     deletions: number;
     filesTouched: number;
   };
+  dailySummaries: StructuredDailySummary[];
   topAuthors: Array<{
     name: string;
     commits: number;

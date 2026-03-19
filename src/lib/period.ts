@@ -3,6 +3,50 @@ import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 import type { PeriodWindow, ReportPeriod } from "@/lib/types";
 
+function parseIsoWeekReference(reference: string, timezone: string) {
+  const match = reference.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(week) || week < 1 || week > 53) {
+    return undefined;
+  }
+
+  const januaryFourth = new Date(Date.UTC(year, 0, 4));
+  const dayOfWeek = januaryFourth.getUTCDay() || 7;
+  const monday = new Date(Date.UTC(year, 0, 4 - dayOfWeek + 1 + (week - 1) * 7, 12));
+  const mondayIso = monday.toISOString().slice(0, 10);
+
+  return fromZonedTime(`${mondayIso}T12:00:00`, timezone);
+}
+
+export function parsePeriodReference(
+  period: ReportPeriod,
+  timezone: string,
+  reference?: string,
+) {
+  if (!reference) {
+    return undefined;
+  }
+
+  if (period === "day" && /^\d{4}-\d{2}-\d{2}$/.test(reference)) {
+    return fromZonedTime(`${reference}T12:00:00`, timezone);
+  }
+
+  if (period === "week") {
+    return parseIsoWeekReference(reference, timezone);
+  }
+
+  if (period === "month" && /^\d{4}-\d{2}$/.test(reference)) {
+    return fromZonedTime(`${reference}-15T12:00:00`, timezone);
+  }
+
+  return undefined;
+}
+
 export function resolvePeriodWindow(
   period: ReportPeriod,
   timezone: string,

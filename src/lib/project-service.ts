@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { collectCommits, ensureRepoReady } from "@/lib/git";
-import { resolvePeriodWindow } from "@/lib/period";
+import { parsePeriodReference, resolvePeriodWindow } from "@/lib/period";
 import {
   buildStructuredReport,
   filterCommitsForReport,
@@ -189,6 +189,21 @@ export async function upsertProjectFromPayload(payload: unknown) {
   return persistProjectInput(payload);
 }
 
+export async function deleteProject(projectId: string) {
+  return prisma.project.delete({
+    where: { id: projectId },
+  });
+}
+
+export async function deleteReport(reportId: string) {
+  return prisma.reportRun.delete({
+    where: { id: reportId },
+    include: {
+      project: true,
+    },
+  });
+}
+
 export async function runProjectSync(projectId: string) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -272,7 +287,11 @@ export async function runProjectSync(projectId: string) {
   }
 }
 
-export async function generateProjectReport(projectId: string, requestedPeriod?: ReportPeriod) {
+export async function generateProjectReport(
+  projectId: string,
+  requestedPeriod?: ReportPeriod,
+  requestedReference?: string,
+) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
@@ -302,7 +321,8 @@ export async function generateProjectReport(projectId: string, requestedPeriod?:
   }
 
   const period = requestedPeriod ?? (project.defaultPeriod as ReportPeriod);
-  const window = resolvePeriodWindow(period, project.timezone);
+  const referenceDate = parsePeriodReference(period, project.timezone, requestedReference);
+  const window = resolvePeriodWindow(period, project.timezone, referenceDate);
   const authorNames = parseJsonArray(project.authorRule?.namesJson);
   const authorEmails = parseJsonArray(project.authorRule?.emailsJson);
   const branchScope =
