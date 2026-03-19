@@ -96,7 +96,7 @@ export function DashboardShell({
       if (!response.ok) {
         notification.error({
           description: payload.error ?? "删除项目失败，请稍后重试。",
-          message: "删除项目失败",
+          title: "删除项目失败",
         });
         setPendingDeleteId(null);
         return;
@@ -104,7 +104,7 @@ export function DashboardShell({
 
       notification.success({
         description: "项目、同步记录和历史报告已一并移除。",
-        message: "项目已删除",
+        title: "项目已删除",
       });
       setPendingDeleteId(null);
       router.refresh();

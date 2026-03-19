@@ -204,6 +204,30 @@ export async function deleteReport(reportId: string) {
   });
 }
 
+export async function deleteProjectReports(projectId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  const result = await prisma.reportRun.deleteMany({
+    where: {
+      projectId,
+    },
+  });
+
+  return {
+    projectId,
+    deletedCount: result.count,
+  };
+}
+
 export async function runProjectSync(projectId: string) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },

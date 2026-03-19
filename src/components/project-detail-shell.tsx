@@ -8,6 +8,7 @@ import { getISOWeek, getISOWeekYear } from "date-fns";
 import {
   ArrowLeftOutlined,
   BranchesOutlined,
+  ClearOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
@@ -156,7 +157,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
     dayjs(project.initialReference.pickerSeed),
   );
   const [currentAction, setCurrentAction] = useState<
-    "sync" | "report" | "delete-project" | string | null
+    "sync" | "report" | "delete-project" | "clear-reports" | `delete-report:${string}` | null
   >(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -166,6 +167,9 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   );
   const authorFilters = [...project.authorRule.names, ...project.authorRule.emails];
   const latestReport = project.reports[0];
+  const isBusy = currentAction !== null;
+  const isGeneratingReport = currentAction === "report";
+  const areRecentReportsLocked = currentAction === "report" || currentAction === "clear-reports";
 
   const resetReferenceToCurrent = (period = reportPeriod) => {
     const current = createCurrentReference(period, project.timezone);
@@ -192,15 +196,15 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       if (!response.ok) {
         notification.error({
           description: payload.error ?? "同步失败，请稍后重试。",
-          message: "同步失败",
+          title: "同步失败",
         });
         setCurrentAction(null);
         return;
       }
 
       notification.success({
-        description: "提交索引已经刷新到本地数据库，可以直接生成报告。",
-        message: "仓库同步完成",
+        description: "提交索引已经刷新到本地数据库，现在可以直接生成报告。",
+        title: "仓库同步完成",
       });
       setCurrentAction(null);
       router.refresh();
@@ -210,8 +214,8 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
   const generateReport = () => {
     if (!hasSyncedData) {
       notification.warning({
-        description: "系统需要先把提交索引到本地 SQLite，才能生成报告。",
-        message: "请先同步仓库",
+        description: "系统需要先把提交索引写入本地 SQLite，之后才能生成报告。",
+        title: "请先同步仓库",
       });
       return;
     }
@@ -240,7 +244,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       if (!response.ok || !payload.report) {
         notification.error({
           description: payload.error ?? "报告生成失败，请稍后重试。",
-          message: "报告生成失败",
+          title: "报告生成失败",
         });
         setCurrentAction(null);
         return;
@@ -248,7 +252,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
 
       notification.success({
         description: "结果已生成，正在跳转到报告详情页。",
-        message: "报告已生成",
+        title: "报告已生成",
       });
       setCurrentAction(null);
       router.refresh();
@@ -270,17 +274,47 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       if (!response.ok) {
         notification.error({
           description: payload.error ?? "删除项目失败，请稍后重试。",
-          message: "删除项目失败",
+          title: "删除项目失败",
         });
         setCurrentAction(null);
         return;
       }
 
       notification.success({
-        description: "项目、同步记录和历史报告已一并移除。",
-        message: "项目已删除",
+        description: "项目、同步记录和历史报告已经一起移除。",
+        title: "项目已删除",
       });
       router.push("/");
+      router.refresh();
+    });
+  };
+
+  const removeAllReports = () => {
+    setCurrentAction("clear-reports");
+
+    startTransition(async () => {
+      const response = await fetch(`/api/projects/${project.id}/reports`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        deletedCount?: number;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        notification.error({
+          description: payload.error ?? "清空报告失败，请稍后重试。",
+          title: "清空失败",
+        });
+        setCurrentAction(null);
+        return;
+      }
+
+      notification.success({
+        description: `已清空 ${payload.deletedCount ?? 0} 份历史报告，不影响项目配置和同步数据。`,
+        title: "报告已清空",
+      });
+      setCurrentAction(null);
       router.refresh();
     });
   };
@@ -299,15 +333,15 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
       if (!response.ok) {
         notification.error({
           description: payload.error ?? "删除报告失败，请稍后重试。",
-          message: "删除报告失败",
+          title: "删除报告失败",
         });
         setCurrentAction(null);
         return;
       }
 
       notification.success({
-        description: "当前报告已移除，不会影响项目配置与同步数据。",
-        message: "报告已删除",
+        description: "当前报告已移除，不会影响项目配置和同步数据。",
+        title: "报告已删除",
       });
       setCurrentAction(null);
       router.refresh();
@@ -344,7 +378,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                 </Title>
 
                 <Paragraph style={{ marginBottom: 0, marginTop: 12 }} type="secondary">
-                  这里只展示生成报告必需的关键信息。你可以直接按指定日期、周或月份生成，也可以在右侧管理历史报告。
+                  这里展示生成报告必需的关键信息。可以直接按指定日期、周或月份生成，也可以在右侧管理历史报告。
                 </Paragraph>
               </div>
 
@@ -370,31 +404,36 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                     style={{ minWidth: 210 }}
                     value={referencePickerValue}
                   />
-                  <Button onClick={() => resetReferenceToCurrent()} size="large">
+                  <Button disabled={isBusy} onClick={() => resetReferenceToCurrent()} size="large">
                     当前
                   </Button>
                   <Button
-                    disabled={currentAction !== null || !hasSyncedData}
+                    disabled={isBusy || !hasSyncedData}
                     icon={<FileTextOutlined />}
-                    loading={currentAction === "report"}
+                    loading={isGeneratingReport}
                     onClick={generateReport}
                     size="large"
                     type="primary"
                   >
-                    {currentAction === "report" ? "生成中..." : "生成报告"}
+                    {isGeneratingReport ? "生成中..." : "生成报告"}
                   </Button>
                 </div>
 
                 <div className="hero-toolbar">
                   <Button
-                    disabled={currentAction !== null}
+                    disabled={isBusy}
                     icon={<SyncOutlined spin={currentAction === "sync"} />}
                     onClick={runSync}
                     size="large"
                   >
                     {currentAction === "sync" ? "同步中..." : "同步仓库"}
                   </Button>
-                  <Button icon={<EditOutlined />} onClick={() => setIsEditOpen(true)} size="large">
+                  <Button
+                    disabled={isBusy}
+                    icon={<EditOutlined />}
+                    onClick={() => setIsEditOpen(true)}
+                    size="large"
+                  >
                     修改配置
                   </Button>
                   <Popconfirm
@@ -405,7 +444,9 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                     title="确认删除这个项目？"
                   >
                     <Button
+                      className="danger-ghost-button"
                       danger
+                      disabled={isBusy}
                       icon={<DeleteOutlined />}
                       loading={currentAction === "delete-project"}
                       size="large"
@@ -418,23 +459,23 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
             </div>
 
             <Text type="secondary">
-              当前默认定位到本期的 {getReferenceInputLabel(reportPeriod)}；你也可以切换成历史某一天、某一周或某个月后再生成报告。
+              当前默认定位到本期的 {getReferenceInputLabel(reportPeriod)}；也可以切换成历史某一天、某一周或某个月后再生成报告。
             </Text>
 
             {!hasSyncedData ? (
               <Alert
                 description="首次生成前必须先同步仓库。系统只会把提交元数据索引到本地 SQLite；本地仓库不会复制工作区，远程仓库会更新本地缓存仓库。"
-                showIcon
                 title="当前还没有同步记录"
+                showIcon
                 type="warning"
               />
             ) : null}
 
             {!hasAiConfig ? (
               <Alert
-                description="当前未配置 Base URL、模型和 API Key。点击“生成报告”时会自动回退到规则版 Markdown 摘要。Temperature 只影响措辞风格，不影响事实来源。"
-                showIcon
+                description="当前未配置 Base URL、模型和 API Key。点击“生成报告”时会自动回退到规则版 Markdown 摘要。"
                 title="AI 配置为空时会走规则版摘要"
+                showIcon
                 type="info"
               />
             ) : null}
@@ -448,18 +489,49 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
             <Card
               title="最近报告"
               extra={
-                latestReport ? (
-                  <Button
-                    href={`/api/reports/${latestReport.id}/markdown`}
-                    icon={<DownloadOutlined />}
-                    type="link"
-                  >
-                    下载最新 Markdown
-                  </Button>
-                ) : null
+                <Space size={4} wrap>
+                  {latestReport ? (
+                    <Button
+                      disabled={areRecentReportsLocked}
+                      href={`/api/reports/${latestReport.id}/markdown`}
+                      icon={<DownloadOutlined />}
+                      type="link"
+                    >
+                      下载最新 Markdown
+                    </Button>
+                  ) : null}
+                  {project.reports.length > 0 ? (
+                    <Popconfirm
+                      description="会一次性清空当前项目的全部历史报告，但不会影响项目配置和同步数据。"
+                      okButtonProps={{ danger: true }}
+                      okText="清空"
+                      onConfirm={removeAllReports}
+                      title="确认清空全部报告？"
+                    >
+                      <Button
+                        danger
+                        disabled={isBusy}
+                        icon={<ClearOutlined />}
+                        loading={currentAction === "clear-reports"}
+                        type="link"
+                      >
+                        一键清空
+                      </Button>
+                    </Popconfirm>
+                  ) : null}
+                </Space>
               }
             >
               <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+                {areRecentReportsLocked ? (
+                  <Alert
+                    description="生成新报告期间，最近报告区域已临时锁定，避免误点进入旧结果。"
+                    title="最近报告已临时锁定"
+                    showIcon
+                    type="info"
+                  />
+                ) : null}
+
                 {project.reports.length > 0 ? (
                   project.reports.map((report, index) => (
                     <Card
@@ -484,16 +556,25 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             {report.createdAtLabel}
                           </Title>
                           <Paragraph style={{ marginBottom: 0, marginTop: 6 }} type="secondary">
-                            共 {report.totalCommits} 条提交。最新结果会优先突出显示，方便你快速回看真实内容。
+                            共 {report.totalCommits} 条提交。最新结果会优先突出显示，方便快速回看真实内容。
                           </Paragraph>
                         </div>
 
                         <div className="report-card__footer">
                           <Space wrap>
-                            <Button onClick={() => router.push(`/reports/${report.id}`)} type="primary">
+                            <Button
+                              disabled={areRecentReportsLocked}
+                              onClick={() => router.push(`/reports/${report.id}`)}
+                              type="primary"
+                            >
                               查看结果
                             </Button>
-                            <Button href={`/api/reports/${report.id}/markdown`}>下载 Markdown</Button>
+                            <Button
+                              disabled={areRecentReportsLocked}
+                              href={`/api/reports/${report.id}/markdown`}
+                            >
+                              下载 Markdown
+                            </Button>
                           </Space>
                           <Popconfirm
                             description="删除后只移除这次生成结果，不影响项目和同步数据。"
@@ -505,6 +586,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             <Button
                               className="report-card__danger"
                               danger
+                              disabled={isBusy}
                               icon={<DeleteOutlined />}
                               loading={currentAction === `delete-report:${report.id}`}
                               type="text"
@@ -552,8 +634,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                     {
                       key: "authors",
                       label: "作者过滤",
-                      children:
-                        authorFilters.length > 0 ? authorFilters.join(", ") : "全部作者",
+                      children: authorFilters.length > 0 ? authorFilters.join(", ") : "全部作者",
                     },
                     {
                       key: "ai",
@@ -602,9 +683,7 @@ export function ProjectDetailShell({ project }: { project: ProjectDetail }) {
                             <Tag color={index === 0 ? "processing" : "default"}>{syncRun.status}</Tag>
                             <Text strong>{syncRun.commitCount} 条提交</Text>
                           </Space>
-                          <Text type="secondary">
-                            {syncRun.startedAtLabel}
-                          </Text>
+                          <Text type="secondary">{syncRun.startedAtLabel}</Text>
                         </div>
                         {syncRun.message ? (
                           <Paragraph style={{ marginBottom: 0, marginTop: 10 }} type="secondary">

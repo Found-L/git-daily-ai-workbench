@@ -118,7 +118,14 @@ export function AntdProvider({ children }: { children: ReactNode }) {
 
   return (
     <ConfigProvider locale={zhCN} theme={configTheme}>
-      <App notification={{ placement: "bottomRight", duration: 2.6, stack: { threshold: 4 } }}>
+      <App
+        notification={{
+          duration: 2.8,
+          placement: "top",
+          stack: { threshold: 3 },
+          top: 24,
+        }}
+      >
         {children}
         <Tooltip title={isDarkMode ? "切换到亮色模式" : "切换到暗黑模式"}>
           <Button

@@ -144,7 +144,7 @@ export function ReportDetailShell({
       if (!response.ok) {
         notification.error({
           description: payload.error ?? "删除报告失败，请稍后重试。",
-          message: "删除报告失败",
+          title: "删除报告失败",
         });
         setIsDeleting(false);
         return;
@@ -152,7 +152,7 @@ export function ReportDetailShell({
 
       notification.success({
         description: "当前报告已移除，不会影响项目配置与同步数据。",
-        message: "报告已删除",
+        title: "报告已删除",
       });
       router.push(`/projects/${payload.projectId ?? report.project.id}`);
       router.refresh();
@@ -206,7 +206,13 @@ export function ReportDetailShell({
                     onConfirm={removeReport}
                     title="确认删除这份报告？"
                   >
-                    <Button danger icon={<DeleteOutlined />} loading={isDeleting} size="large">
+                    <Button
+                      className="danger-ghost-button"
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={isDeleting}
+                      size="large"
+                    >
                       删除报告
                     </Button>
                   </Popconfirm>
