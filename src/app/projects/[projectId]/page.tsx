@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { ProjectDetailShell } from "@/components/project-detail-shell";
+import { resolveCurrentReference } from "@/lib/period";
 import { getProjectDetail } from "@/lib/project-service";
 import { parseJsonArray } from "@/lib/serialization";
+import { formatLocalDateTime } from "@/lib/utils";
 
 export default async function ProjectDetailPage({
   params,
@@ -16,14 +18,18 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
+  const defaultPeriod = project.defaultPeriod as "day" | "week" | "month";
+  const initialReference = resolveCurrentReference(defaultPeriod, project.timezone);
+
   return (
     <ProjectDetailShell
       project={{
         id: project.id,
         name: project.name,
         sourceType: project.sourceType,
-        defaultPeriod: project.defaultPeriod as "day" | "week" | "month",
+        defaultPeriod,
         timezone: project.timezone,
+        initialReference,
         repoSource: project.repoSource,
         branchRule: {
           mode: (project.branchRule?.mode ?? "all") as "all" | "selected",
@@ -40,13 +46,13 @@ export default async function ProjectDetailPage({
           status: syncRun.status,
           message: syncRun.message,
           commitCount: syncRun.commitCount,
-          startedAt: syncRun.startedAt.toISOString(),
+          startedAtLabel: formatLocalDateTime(syncRun.startedAt, "zh-CN", project.timezone),
         })),
         reports: project.reports.map((report) => ({
           id: report.id,
           period: report.period,
           status: report.status,
-          createdAt: report.createdAt.toISOString(),
+          createdAtLabel: formatLocalDateTime(report.createdAt, "zh-CN", project.timezone),
           totalCommits: report.totalCommits,
         })),
       }}
