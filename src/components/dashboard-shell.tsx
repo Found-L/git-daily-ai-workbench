@@ -1,8 +1,27 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDeferredValue, useState } from "react";
-import { ArrowRight, GitBranch, Sparkles } from "lucide-react";
+
+import {
+  ArrowRightOutlined,
+  BranchesOutlined,
+  FolderOpenOutlined,
+  SearchOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Col,
+  Empty,
+  Input,
+  Row,
+  Space,
+  Statistic,
+  Tag,
+  Typography,
+} from "antd";
 
 import { ProjectForm } from "@/components/project-form";
 import { formatLocalDateTime } from "@/lib/utils";
@@ -30,6 +49,8 @@ type ProjectCard = {
   } | null;
 };
 
+const { Paragraph, Text, Title } = Typography;
+
 function getPeriodLabel(period: string) {
   if (period === "day") {
     return "日报";
@@ -49,6 +70,7 @@ export function DashboardShell({
   projects: ProjectCard[];
   defaultTimezone: string;
 }) {
+  const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const deferredKeyword = useDeferredValue(keyword);
 
@@ -65,137 +87,160 @@ export function DashboardShell({
   });
 
   return (
-    <main className="page-wrap space-y-8">
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="panel rounded-[2rem] px-6 py-8 lg:px-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-[var(--accent-deep)]">
-            <Sparkles className="h-4 w-4" />
-            Git + AI Report Desk
-          </div>
-          <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-[-0.05em] text-[var(--foreground)] md:text-6xl">
-            把提交历史整理成真正可读的日报。
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--muted)] md:text-lg">
-            连接本地仓库或远程 Git URL，按作者和分支筛选，自动汇总日、周、月提交，并在配置模型后生成中文
-            AI Markdown 报告。
-          </p>
+    <main className="page-wrap">
+      <section className="page-section">
+        <Row align="top" gutter={[24, 24]}>
+          <Col xs={24} xl={13}>
+            <Card styles={{ body: { padding: 32 } }}>
+              <Space orientation="vertical" size={20} style={{ width: "100%" }}>
+                <Tag color="blue" style={{ alignSelf: "flex-start", marginInlineEnd: 0, paddingInline: 12, paddingBlock: 6 }}>
+                  Git + AI Report Desk
+                </Tag>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/60 p-4">
-              <p className="text-3xl font-bold tracking-[-0.04em]">{projects.length}</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">已配置项目</p>
-            </div>
-            <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/60 p-4">
-              <p className="text-3xl font-bold tracking-[-0.04em]">
-                {projects.filter((item) => item.lastSync).length}
-              </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">已有同步记录</p>
-            </div>
-            <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/60 p-4">
-              <p className="text-lg font-bold tracking-[-0.04em]">{defaultTimezone}</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">默认时区</p>
-            </div>
-          </div>
-        </div>
+                <Title level={1} style={{ fontSize: "clamp(2.5rem, 5vw, 4.5rem)", lineHeight: 1.02, margin: 0 }}>
+                  把提交历史整理成真正可读的日报。
+                </Title>
 
-        <div className="panel rounded-[2rem] p-6 lg:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">新建项目</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-[-0.04em]">添加新的仓库监控配置</h2>
-          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-            第一版支持本地仓库路径和远程 Git URL。AI 配置留空时，系统会自动输出规则版 Markdown
-            摘要。
-          </p>
+                <Paragraph style={{ fontSize: 18, marginBottom: 0 }} type="secondary">
+                  连接本地仓库或远程 Git URL，按作者和分支筛选，自动汇总日、周、月提交，并在配置模型后生成中文 AI Markdown 报告。
+                </Paragraph>
 
-          <div className="mt-6">
-            <ProjectForm defaultTimezone={defaultTimezone} submitLabel="创建项目" />
-          </div>
-        </div>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic title="已配置项目" value={projects.length} />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic title="已有同步记录" value={projects.filter((item) => item.lastSync).length} />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        styles={{ content: { fontSize: 20 } }}
+                        title="默认时区"
+                        value={defaultTimezone}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              </Space>
+            </Card>
+          </Col>
+
+          <Col xs={24} xl={11}>
+            <Card
+              styles={{ body: { padding: 32 } }}
+              title={<Title level={3} style={{ margin: 0 }}>新建项目</Title>}
+            >
+              <Paragraph style={{ marginTop: 0 }} type="secondary">
+                第一版支持本地仓库路径和远程 Git URL。AI 配置留空时，系统会自动输出规则版 Markdown 摘要。
+              </Paragraph>
+              <ProjectForm defaultTimezone={defaultTimezone} submitLabel="创建项目" />
+            </Card>
+          </Col>
+        </Row>
       </section>
 
-      <section className="panel rounded-[2rem] p-6 lg:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">项目列表</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em]">按项目查看同步与报告状态</h2>
-          </div>
+      <section className="page-section">
+        <Card styles={{ body: { padding: 32 } }}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <Title level={3} style={{ margin: 0 }}>
+                项目列表
+              </Title>
+              <Paragraph style={{ marginBottom: 0, marginTop: 8 }} type="secondary">
+                按项目查看同步进度、报告状态和当前过滤条件。
+              </Paragraph>
+            </div>
 
-          <label className="block w-full max-w-md space-y-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">搜索项目 / 作者</span>
-            <input
-              className="w-full rounded-full border border-[var(--line)] bg-white/70 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
+            <Input
+              allowClear
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="输入项目名、作者名或邮箱"
+              prefix={<SearchOutlined />}
+              size="large"
+              style={{ maxWidth: 360 }}
               value={keyword}
             />
-          </label>
-        </div>
-
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          {filteredProjects.map((project) => (
-            <Link
-              className="group rounded-[1.75rem] border border-[var(--line)] bg-white/70 p-5 transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-[0_18px_40px_rgba(68,42,23,0.08)]"
-              href={`/projects/${project.id}`}
-              key={project.id}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">
-                    {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-bold tracking-[-0.04em]">{project.name}</h3>
-                </div>
-                <div className="rounded-full border border-[var(--line)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                  {getPeriodLabel(project.defaultPeriod)}
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
-                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1">
-                  <GitBranch className="h-4 w-4" />
-                  {project.selectedBranches.length > 0
-                    ? `${project.selectedBranches.length} 个指定分支`
-                    : "全部分支"}
-                </span>
-                <span className="rounded-full border border-[var(--line)] px-3 py-1">
-                  {project.authorNames.length + project.authorEmails.length > 0
-                    ? `${project.authorNames.length + project.authorEmails.length} 个作者过滤器`
-                    : "全部作者"}
-                </span>
-                <span className="rounded-full border border-[var(--line)] px-3 py-1">{project.timezone}</span>
-              </div>
-
-              <dl className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">最近同步</dt>
-                  <dd className="mt-2 text-sm leading-7 text-[var(--foreground)]">
-                    {project.lastSync
-                      ? `${project.lastSync.status} · ${formatLocalDateTime(project.lastSync.startedAt, "zh-CN", project.timezone)}`
-                      : "还没有同步记录"}
-                  </dd>
-                </div>
-                <div className="rounded-[1.2rem] border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">最近报告</dt>
-                  <dd className="mt-2 text-sm leading-7 text-[var(--foreground)]">
-                    {project.lastReport
-                      ? `${getPeriodLabel(project.lastReport.period)} · ${formatLocalDateTime(project.lastReport.createdAt, "zh-CN", project.timezone)}`
-                      : "还没有生成报告"}
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-deep)]">
-                打开项目
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {filteredProjects.length === 0 ? (
-          <div className="mt-8 rounded-[1.5rem] border border-dashed border-[var(--line)] bg-white/45 px-5 py-10 text-center text-sm text-[var(--muted)]">
-            当前没有匹配的项目，试试换个关键词，或者先新建一个仓库配置。
           </div>
-        ) : null}
+
+          <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+            {filteredProjects.map((project) => (
+              <Col key={project.id} xs={24} xl={12}>
+                <Card
+                  hoverable
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                >
+                  <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <Text type="secondary">
+                          {project.sourceType === "local" ? "本地仓库" : "远程仓库"}
+                        </Text>
+                        <Title level={4} style={{ marginBottom: 0, marginTop: 8 }}>
+                          {project.name}
+                        </Title>
+                      </div>
+                      <Tag color="blue">{getPeriodLabel(project.defaultPeriod)}</Tag>
+                    </div>
+
+                    <Space size={[8, 8]} wrap>
+                      <Tag icon={<BranchesOutlined />} style={{ marginInlineEnd: 0 }}>
+                        {project.selectedBranches.length > 0 ? `${project.selectedBranches.length} 个指定分支` : "全部分支"}
+                      </Tag>
+                      <Tag icon={<FolderOpenOutlined />} style={{ marginInlineEnd: 0 }}>
+                        {project.authorNames.length + project.authorEmails.length > 0
+                          ? `${project.authorNames.length + project.authorEmails.length} 个作者过滤器`
+                          : "全部作者"}
+                      </Tag>
+                      <Tag icon={<SyncOutlined />} style={{ marginInlineEnd: 0 }}>
+                        {project.timezone}
+                      </Tag>
+                    </Space>
+
+                    <Row gutter={[12, 12]}>
+                      <Col xs={24} md={12}>
+                        <Card size="small">
+                          <Text type="secondary">最近同步</Text>
+                          <Paragraph style={{ marginBottom: 0, marginTop: 8 }}>
+                            {project.lastSync
+                              ? `${project.lastSync.status} · ${formatLocalDateTime(project.lastSync.startedAt, "zh-CN", project.timezone)}`
+                              : "还没有同步记录"}
+                          </Paragraph>
+                        </Card>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Card size="small">
+                          <Text type="secondary">最近报告</Text>
+                          <Paragraph style={{ marginBottom: 0, marginTop: 8 }}>
+                            {project.lastReport
+                              ? `${getPeriodLabel(project.lastReport.period)} · ${formatLocalDateTime(project.lastReport.createdAt, "zh-CN", project.timezone)}`
+                              : "还没有生成报告"}
+                          </Paragraph>
+                        </Card>
+                      </Col>
+                    </Row>
+
+                    <Button icon={<ArrowRightOutlined />} type="link">
+                      打开项目
+                    </Button>
+                  </Space>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+
+          {filteredProjects.length === 0 ? (
+            <Empty
+              description="当前没有匹配的项目，试试换个关键词，或者先新建一个仓库配置。"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              style={{ marginTop: 32 }}
+            />
+          ) : null}
+        </Card>
       </section>
     </main>
   );

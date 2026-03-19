@@ -4,6 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Row,
+  Select,
+  Space,
+  Typography,
+} from "antd";
+
 type ProjectFormValues = {
   id?: string;
   name: string;
@@ -41,6 +54,24 @@ const defaultValues = (timezone: string): ProjectFormValues => ({
   llmTemperature: "0.3",
 });
 
+const periodOptions = [
+  { label: "日报", value: "day" },
+  { label: "周报", value: "week" },
+  { label: "月报", value: "month" },
+] as const;
+
+const sourceTypeOptions = [
+  { label: "本地仓库", value: "local" },
+  { label: "远程 Git URL", value: "remote" },
+] as const;
+
+const branchModeOptions = [
+  { label: "全部分支", value: "all" },
+  { label: "指定分支", value: "selected" },
+] as const;
+
+const { Paragraph, Text } = Typography;
+
 export function ProjectForm({
   initialValues,
   defaultTimezone,
@@ -60,6 +91,8 @@ export function ProjectForm({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const columnProps = compact ? { xs: 24, md: 12 } : { xs: 24, lg: 12 };
 
   const update = (key: keyof ProjectFormValues, value: string) => {
     setValues((current) => ({
@@ -94,7 +127,7 @@ export function ProjectForm({
         return;
       }
 
-      setFeedback("项目配置已保存");
+      setFeedback(values.id ? "项目配置已更新" : "项目配置已保存");
       router.refresh();
 
       if (!values.id) {
@@ -103,208 +136,225 @@ export function ProjectForm({
     });
   };
 
-  const gridClasses = compact ? "grid gap-4 md:grid-cols-2" : "grid gap-4 lg:grid-cols-2";
-
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className={gridClasses}>
-        {values.id ? <input name="id" type="hidden" value={values.id} /> : null}
+    <Form autoComplete="off" layout="vertical" onSubmitCapture={handleSubmit}>
+      {values.id ? <input name="id" type="hidden" value={values.id} /> : null}
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">项目名称</span>
-          <input
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => update("name", event.target.value)}
-            placeholder="例如：团队平台主仓库"
-            value={values.name}
-          />
-        </label>
+      <Row gutter={[16, 8]}>
+        <Col {...columnProps}>
+          <Form.Item label="项目名称" required>
+            <Input
+              name="name"
+              onChange={(event) => update("name", event.target.value)}
+              placeholder="例如：团队平台主仓库"
+              size="large"
+              value={values.name}
+            />
+          </Form.Item>
+        </Col>
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">默认统计周期</span>
-          <select
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            onChange={(event) => update("defaultPeriod", event.target.value)}
-            value={values.defaultPeriod}
-          >
-            <option value="day">日报</option>
-            <option value="week">周报</option>
-            <option value="month">月报</option>
-          </select>
-        </label>
+        <Col {...columnProps}>
+          <Form.Item label="默认统计周期" required>
+            <Select
+              onChange={(value) => update("defaultPeriod", value)}
+              options={periodOptions.map((item) => ({ ...item }))}
+              size="large"
+              value={values.defaultPeriod}
+            />
+          </Form.Item>
+        </Col>
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">仓库来源</span>
-          <select
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            onChange={(event) => update("sourceType", event.target.value)}
-            value={values.sourceType}
-          >
-            <option value="local">本地仓库</option>
-            <option value="remote">远程 Git URL</option>
-          </select>
-        </label>
+        <Col {...columnProps}>
+          <Form.Item label="仓库来源" required>
+            <Select
+              onChange={(value) => update("sourceType", value)}
+              options={sourceTypeOptions.map((item) => ({ ...item }))}
+              size="large"
+              value={values.sourceType}
+            />
+          </Form.Item>
+        </Col>
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">时区</span>
-          <input
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => update("timezone", event.target.value)}
-            placeholder="Asia/Shanghai"
-            value={values.timezone}
-          />
-        </label>
+        <Col {...columnProps}>
+          <Form.Item label="时区" required>
+            <Input
+              name="timezone"
+              onChange={(event) => update("timezone", event.target.value)}
+              placeholder="Asia/Shanghai"
+              size="large"
+              value={values.timezone}
+            />
+          </Form.Item>
+        </Col>
 
         {values.sourceType === "local" ? (
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">本地仓库路径</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("localPath", event.target.value)}
-              placeholder="D:\\code\\my-repo"
-              value={values.localPath}
-            />
-          </label>
+          <Col span={24}>
+            <Form.Item label="本地仓库路径" required>
+              <Input
+                name="localPath"
+                onChange={(event) => update("localPath", event.target.value)}
+                placeholder="D:\\code\\my-repo"
+                size="large"
+                value={values.localPath}
+              />
+            </Form.Item>
+          </Col>
         ) : (
           <>
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-[var(--muted)]">远程仓库 URL</span>
-              <input
-                className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-                onChange={(event) => update("remoteUrl", event.target.value)}
-                placeholder="https://github.com/org/repo.git"
-                value={values.remoteUrl}
-              />
-            </label>
+            <Col span={24}>
+              <Form.Item label="远程仓库 URL" required>
+                <Input
+                  name="remoteUrl"
+                  onChange={(event) => update("remoteUrl", event.target.value)}
+                  placeholder="https://github.com/org/repo.git"
+                  size="large"
+                  value={values.remoteUrl}
+                />
+              </Form.Item>
+            </Col>
 
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-[var(--muted)]">缓存目录</span>
-              <input
-                className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-                onChange={(event) => update("cacheDir", event.target.value)}
-                placeholder="留空则使用 .cache/repos/<projectId>"
-                value={values.cacheDir}
-              />
-            </label>
+            <Col span={24}>
+              <Form.Item
+                extra="留空则使用 .cache/repos/<projectId>"
+                label="缓存目录"
+              >
+                <Input
+                  name="cacheDir"
+                  onChange={(event) => update("cacheDir", event.target.value)}
+                  placeholder="留空则使用 .cache/repos/<projectId>"
+                  size="large"
+                  value={values.cacheDir}
+                />
+              </Form.Item>
+            </Col>
           </>
         )}
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">分支模式</span>
-          <select
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none"
-            onChange={(event) => update("branchMode", event.target.value)}
-            value={values.branchMode}
-          >
-            <option value="all">全部分支</option>
-            <option value="selected">指定分支</option>
-          </select>
-        </label>
+        <Col {...columnProps}>
+          <Form.Item label="分支模式">
+            <Select
+              onChange={(value) => update("branchMode", value)}
+              options={branchModeOptions.map((item) => ({ ...item }))}
+              size="large"
+              value={values.branchMode}
+            />
+          </Form.Item>
+        </Col>
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">作者名</span>
-          <input
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => update("authorNames", event.target.value)}
-            placeholder="多个作者可用逗号或换行分隔"
-            value={values.authorNames}
-          />
-        </label>
+        <Col {...columnProps}>
+          <Form.Item extra="多个作者可用逗号或换行分隔" label="作者名">
+            <Input
+              name="authorNames"
+              onChange={(event) => update("authorNames", event.target.value)}
+              placeholder="多个作者可用逗号或换行分隔"
+              size="large"
+              value={values.authorNames}
+            />
+          </Form.Item>
+        </Col>
 
-        <label className="space-y-2">
-          <span className="text-sm font-semibold text-[var(--muted)]">作者邮箱</span>
-          <input
-            className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => update("authorEmails", event.target.value)}
-            placeholder="多个邮箱可用逗号或换行分隔"
-            value={values.authorEmails}
-          />
-        </label>
+        <Col {...columnProps}>
+          <Form.Item extra="多个邮箱可用逗号或换行分隔" label="作者邮箱">
+            <Input
+              name="authorEmails"
+              onChange={(event) => update("authorEmails", event.target.value)}
+              placeholder="多个邮箱可用逗号或换行分隔"
+              size="large"
+              value={values.authorEmails}
+            />
+          </Form.Item>
+        </Col>
 
         {values.branchMode === "selected" ? (
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">指定分支</span>
-            <textarea
-              className="min-h-28 w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("selectedBranches", event.target.value)}
-              placeholder={"main\ndevelop\nrelease/2026.03"}
-              value={values.selectedBranches}
-            />
-          </label>
+          <Col span={24}>
+            <Form.Item extra="每行一个分支名，或使用逗号分隔。" label="指定分支">
+              <Input.TextArea
+                autoSize={{ minRows: 4, maxRows: 6 }}
+                name="selectedBranches"
+                onChange={(event) => update("selectedBranches", event.target.value)}
+                placeholder={"main\ndevelop\nrelease/2026.03"}
+                value={values.selectedBranches}
+              />
+            </Form.Item>
+          </Col>
         ) : null}
-      </div>
+      </Row>
 
-      <div className="space-y-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--paper-strong)] p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">AI 配置</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              支持 OpenAI-compatible 接口。留空时会退回规则版 Markdown 报告。
-            </p>
-          </div>
-          <Link
-            className="text-sm font-semibold text-[var(--accent)]"
-            href="https://platform.openai.com/docs/overview"
-          >
-            OpenAI 文档
+      <Card
+        size="small"
+        styles={{ body: { paddingBottom: 8 } }}
+        title="AI 配置"
+        extra={
+          <Link href="https://platform.openai.com/docs/overview">
+            <Button type="link">OpenAI 文档</Button>
           </Link>
-        </div>
+        }
+      >
+        <Paragraph style={{ marginBottom: 16 }} type="secondary">
+          支持 OpenAI-compatible 接口。留空时会退回规则版 Markdown 报告。
+        </Paragraph>
 
-        <div className={gridClasses}>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">Base URL</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("llmBaseUrl", event.target.value)}
-              placeholder="https://api.openai.com/v1"
-              value={values.llmBaseUrl}
-            />
-          </label>
+        <Row gutter={[16, 8]}>
+          <Col span={24}>
+            <Form.Item label="Base URL">
+              <Input
+                name="llmBaseUrl"
+                onChange={(event) => update("llmBaseUrl", event.target.value)}
+                placeholder="https://api.openai.com/v1"
+                size="large"
+                value={values.llmBaseUrl}
+              />
+            </Form.Item>
+          </Col>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">模型</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("llmModel", event.target.value)}
-              placeholder="gpt-5.4 或兼容模型"
-              value={values.llmModel}
-            />
-          </label>
+          <Col {...columnProps}>
+            <Form.Item label="模型">
+              <Input
+                name="llmModel"
+                onChange={(event) => update("llmModel", event.target.value)}
+                placeholder="gpt-5.4 或兼容模型"
+                size="large"
+                value={values.llmModel}
+              />
+            </Form.Item>
+          </Col>
 
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">Temperature</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("llmTemperature", event.target.value)}
-              placeholder="0.3"
-              value={values.llmTemperature}
-            />
-          </label>
+          <Col {...columnProps}>
+            <Form.Item label="Temperature">
+              <Input
+                name="llmTemperature"
+                onChange={(event) => update("llmTemperature", event.target.value)}
+                placeholder="0.3"
+                size="large"
+                value={values.llmTemperature}
+              />
+            </Form.Item>
+          </Col>
 
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-[var(--muted)]">API Key</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => update("llmApiKey", event.target.value)}
-              placeholder="sk-..."
-              type="password"
-              value={values.llmApiKey}
-            />
-          </label>
-        </div>
-      </div>
+          <Col span={24}>
+            <Form.Item label="API Key">
+              <Input.Password
+                autoComplete="new-password"
+                name="llmApiKey"
+                onChange={(event) => update("llmApiKey", event.target.value)}
+                placeholder="sk-..."
+                size="large"
+                value={values.llmApiKey}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-deep)] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isPending}
-          type="submit"
-        >
+      <Space orientation="vertical" size="middle" style={{ marginTop: 24, width: "100%" }}>
+        <Button htmlType="submit" loading={isPending} size="large" type="primary">
           {isPending ? "保存中..." : submitLabel}
-        </button>
-        {feedback ? <p className="text-sm font-semibold text-[var(--emerald)]">{feedback}</p> : null}
-        {error ? <p className="text-sm font-semibold text-[var(--accent-deep)]">{error}</p> : null}
-      </div>
-    </form>
+        </Button>
+
+        {feedback ? <Alert showIcon title={feedback} type="success" /> : null}
+        {error ? <Alert showIcon title={error} type="error" /> : null}
+        <Text type="secondary">AI 总结会基于真实 Git 提交数据生成，不会伪造作者、提交或风险。</Text>
+      </Space>
+    </Form>
   );
 }

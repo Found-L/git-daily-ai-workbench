@@ -21,8 +21,9 @@
 - `corepack pnpm ...` 这组命令按跨平台约定维护，默认适用于 Windows、macOS、Linux。
 - `pnpm` 建议通过 Corepack 运行，避免要求全局安装：
   - 安装依赖：`corepack pnpm install`
-  - 推送数据库 schema：`corepack pnpm prisma:push`
   - 本地开发：`corepack pnpm dev`
+  - `dev` / `build` 会先自动执行 `prisma db push --skip-generate`
+  - 手动推送数据库 schema：`corepack pnpm prisma:push`
   - 校验：`corepack pnpm lint`、`corepack pnpm test`
   - E2E：`corepack pnpm test:e2e`
 - macOS / Linux 默认依赖系统安装的 Node.js / Git，不维护 repo-local `*.sh` bootstrap 脚本。
@@ -30,7 +31,6 @@
 - Windows 机器如果缺少系统级 Node.js / Git，可选使用 repo-local 便携工具链：
   - `.\scripts\bootstrap-tooling.ps1`
   - `.\scripts\with-tooling.ps1 pnpm install`
-  - `.\scripts\with-tooling.ps1 pnpm prisma:push`
   - `.\scripts\with-tooling.ps1 pnpm dev`
 
 ## 实现边界

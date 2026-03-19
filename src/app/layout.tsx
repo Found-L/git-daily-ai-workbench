@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
 
+import { AntdProvider } from "@/components/antd-provider";
+
+import "antd/dist/reset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,14 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html data-scroll-behavior="smooth" lang="zh-CN">
       <body className="antialiased">
-        <div className="app-shell">
-          <div className="app-noise" />
-          <div className="app-glow app-glow-left" />
-          <div className="app-glow app-glow-right" />
-          {children}
-        </div>
+        <AntdRegistry>
+          <AntdProvider>{children}</AntdProvider>
+        </AntdRegistry>
       </body>
     </html>
   );
