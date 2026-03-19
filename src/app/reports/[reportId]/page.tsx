@@ -34,7 +34,12 @@ export default async function ReportDetailPage({
         },
       }}
       structured={{
+        periodLabel: structured.periodLabel,
+        timezone: structured.timezone,
+        branchScope: structured.branchScope,
+        authorScope: structured.authorScope,
         totals: structured.totals,
+        topAuthors: structured.topAuthors,
         hotspots: structured.hotspots,
         commitReferences: structured.commitReferences,
       }}

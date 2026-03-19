@@ -25,7 +25,7 @@ export const projectPayloadSchema = z
     selectedBranches: z.string().optional().default(""),
     authorNames: z.string().optional().default(""),
     authorEmails: z.string().optional().default(""),
-    defaultPeriod: z.enum(REPORT_PERIODS),
+    defaultPeriod: z.enum(REPORT_PERIODS).optional().default("day"),
     timezone: z.string().trim().min(1, "需要时区"),
     llmBaseUrl: z.string().optional().default(""),
     llmApiKey: z.string().optional().default(""),

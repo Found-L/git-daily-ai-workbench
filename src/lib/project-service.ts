@@ -25,6 +25,7 @@ export async function listProjectCards() {
       repoSource: true,
       branchRule: true,
       authorRule: true,
+      llmProfile: true,
       syncRuns: {
         orderBy: {
           startedAt: "desc",
@@ -278,6 +279,12 @@ export async function generateProjectReport(projectId: string, requestedPeriod?:
       branchRule: true,
       authorRule: true,
       llmProfile: true,
+      syncRuns: {
+        orderBy: {
+          startedAt: "desc",
+        },
+        take: 1,
+      },
       commits: {
         orderBy: {
           committedAt: "desc",
@@ -288,6 +295,10 @@ export async function generateProjectReport(projectId: string, requestedPeriod?:
 
   if (!project) {
     throw new Error("Project not found.");
+  }
+
+  if (project.syncRuns.length === 0) {
+    throw new Error("请先同步仓库。系统需要先把提交索引到本地 SQLite，才能生成报告。");
   }
 
   const period = requestedPeriod ?? (project.defaultPeriod as ReportPeriod);

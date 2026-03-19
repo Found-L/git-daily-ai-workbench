@@ -18,6 +18,9 @@ export default async function HomePage() {
         selectedBranches: parseJsonArray(project.branchRule?.selectedBranchesJson),
         authorNames: parseJsonArray(project.authorRule?.namesJson),
         authorEmails: parseJsonArray(project.authorRule?.emailsJson),
+        hasAiConfig: Boolean(
+          project.llmProfile?.baseUrl && project.llmProfile?.apiKey && project.llmProfile?.model,
+        ),
         updatedAt: project.updatedAt.toISOString(),
         lastSync: project.syncRuns[0]
           ? {
