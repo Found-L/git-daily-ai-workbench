@@ -1,0 +1,34 @@
+name: git-daily-ai-workbench
+
+services:
+  app:
+    image: git-daily-ai-workbench:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: git-daily-ai-workbench
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # 数据库路径（容器内，挂载到宿主机 ./data/db）
+      DATABASE_URL: "file:/data/db/workbench.db"
+      # 仓库缓存根目录（容器内，挂载到宿主机 ./data/cache）
+      APP_CACHE_ROOT: "/data/cache"
+      # 运行时状态目录
+      APP_RUNTIME_DIR: "/data/runtime"
+      NODE_ENV: "production"
+      NEXT_TELEMETRY_DISABLED: "1"
+      # 如需全局 AI 默认值，在 .env 里配置以下环境变量（可选）
+      # LLM_BASE_URL: ""
+      # LLM_API_KEY: ""
+      # LLM_MODEL: ""
+    volumes:
+      # 数据库持久化 —— 重建容器不会丢失数据
+      - ./data/db:/data/db
+      # 仓库缓存持久化（克隆的远程仓库）
+      - ./data/cache:/data/cache
+      # 运行时状态（日志等）
+      - ./data/runtime:/data/runtime
+      # 如需读取宿主机本地 Git 仓库，按以下格式挂载（可选）：
+      # - /path/to/your/repos:/repos:ro
