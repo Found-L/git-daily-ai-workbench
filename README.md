@@ -1,83 +1,155 @@
 # Git 日报 AI 工作台
 
-一个单用户、本地优先的 Git 提交分析工作台。它支持配置本地仓库或远程 Git URL、作者过滤、分支范围、日报/周报/月报生成，并在有 OpenAI-compatible 配置时生成中文 AI Markdown 报告。
+把 Git 提交历史整理成可读的日报、周报、月报。支持本地仓库与远程 Git URL，AI 配置可选，缺省时自动回退规则版摘要。
 
-## 核心能力
+---
 
-- 项目配置：本地路径或远程仓库 URL、缓存目录、作者名/邮箱、全部分支或指定分支、默认统计周期、时区。
-- Git 采集：通过 Git CLI 拉取分支和提交，保存到 SQLite。
-- 报告生成：输出结构化统计和 Markdown 日报，支持网页查看与下载。
-- AI 汇总：兼容 OpenAI 接口格式，可接自定义 `baseUrl`、`apiKey`、`model`。
+## 运行方式
 
-## 运行前准备
+### 方式一：本地启动（个人使用）
 
-- 推荐系统已安装 Node.js 22 LTS（或 >= 20.9）和 Git。
-- `pnpm` 不要求全局安装，直接使用 `corepack pnpm` 即可。
-- `gh` 仅在需要登录 GitHub、创建仓库或推送时才需要。
-- `corepack pnpm ...` 这一组基础开发命令是跨平台的，适用于 Windows、macOS 和 Linux。
-- `scripts/*.ps1` 是 PowerShell 脚本，只用于 Windows 下的 repo-local 便携工具链，不是 macOS / Linux 的通用入口。
-
-## 快速开始
+**前提**：系统已安装 [Node.js 22 LTS](https://nodejs.org/) 和 [Git](https://git-scm.com/)。
 
 ```sh
+# 1. 安装依赖（首次执行）
 corepack pnpm install
-corepack pnpm dev
+
+# 2. 启动工作台（自动构建 + 自动打开浏览器）
+pnpm launch
 ```
 
-如果你已经在本机启用了 `pnpm`，也可以把上面的 `corepack pnpm` 直接替换成 `pnpm`。
-`pnpm dev` 与 `pnpm build` 会先自动执行一次 `prisma db push --skip-generate`，确保本地 SQLite 文件和表结构已就绪。
-如果你手动修改了 Prisma schema，也可以单独执行 `corepack pnpm prisma:push` 做同步。
+启动后浏览器会自动打开工作台首页。
 
-## macOS / Linux
-
-macOS / Linux 默认走系统工具链，不提供 repo-local bootstrap 脚本。只要系统里有 Node.js 22 LTS（或 >= 20.9）、Git，并且 `corepack` 可用，就直接执行上面的命令。
-
-macOS 可参考 Homebrew 方案：
+**停止**
 
 ```sh
-brew install node git
-corepack enable
-corepack pnpm install
-corepack pnpm dev
+pnpm stop
 ```
 
-如果需要 GitHub CLI，可额外执行 `brew install gh`。
-Linux 通常使用发行版包管理器或版本管理器安装 Node.js / Git，安装完成后执行同一套 `corepack pnpm ...` 命令即可。
+**Windows 用户**：可以直接双击根目录下的 `启动工作台.vbs` 启动，`停止工作台.vbs` 停止，不会弹出命令行窗口。
 
-## 可选：Windows 便携工具链
+**数据位置**
 
-如果当前机器是 Windows，且没有系统级 Node.js 或 Git，可以使用仓库内的 PowerShell 脚本下载并调用 repo-local 工具链。整个过程只写入当前仓库下的 `.tools`，不依赖固定盘符，也不会要求修改用户级 PATH。
+| 类型 | 默认路径 |
+|---|---|
+| 数据库 | `data/db/` |
+| 仓库缓存 | `data/cache/` |
+| 运行日志 | `data/runtime/` |
+
+所有数据均保存在项目根目录的 `data/` 下，不会上传到任何服务器。
+
+---
+
+### 方式二：Docker 自托管部署（服务器 / 团队共享）
+
+**前提**：服务器已安装 [Docker](https://docs.docker.com/get-docker/) 和 Docker Compose。
+
+```sh
+# 1. 进入部署目录（建议固定到服务器某个路径下）
+cd /opt/git-daily-ai-workbench    # 或任意你选择的目录
+
+# 2. 拉取或复制项目代码到此目录，然后复制环境变量模板
+cp .env.example .env
+# 按需修改 .env（PORT、数据目录等，默认值通常够用）
+
+# 3. 一键启动
+docker compose up -d
+```
+
+服务启动后访问 `http://<服务器IP>:3000`。
+
+**停止 / 重启**
+
+```sh
+docker compose down      # 停止（数据不丢失）
+docker compose restart   # 重启
+```
+
+**升级**
+
+```sh
+docker compose down
+docker compose build --pull
+docker compose up -d
+```
+
+数据库、仓库缓存均持久化到宿主机 `./data/` 目录，重建容器不会丢失数据。
+
+**关于本地仓库路径（进阶）**
+
+Docker 部署默认推荐使用远程 Git URL。如需读取宿主机本地仓库，在 `compose.yaml` 的 `volumes` 里取消以下注释并修改路径：
+
+```yaml
+- /path/to/your/repos:/repos:ro
+```
+
+然后在工作台配置页填写 `/repos/your-repo` 作为本地路径。
+
+---
+
+## 核心功能
+
+- **项目管理**：支持本地路径或远程 Git URL，可配置作者过滤、分支范围、时区、默认报告周期。
+- **Git 采集**：通过 Git CLI 拉取提交记录，保存到本地 SQLite。
+- **报告生成**：输出结构化统计图表和 Markdown 日报，支持网页查看与下载。
+- **AI 汇总**：兼容 OpenAI 接口格式，可配置自定义 `baseUrl`、`apiKey`、`model`；不配置时自动回退规则版摘要。
+
+---
+
+## 环境变量
+
+复制 `.env.example` 为 `.env`，按需修改。常用变量：
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `PORT` | `3000` | 服务端口 |
+| `DATABASE_URL` | `file:./data/db/workbench.db` | SQLite 路径 |
+| `APP_CACHE_ROOT` | `./data/cache` | 仓库缓存目录 |
+| `GIT_BINARY` | 自动探测 | 指定 Git 可执行文件路径 |
+
+---
+
+## 常见问题
+
+**启动时提示"未检测到可用的 Git"**  
+请先安装系统 Git。Windows 用户也可以运行 `.\scripts\bootstrap-tooling.ps1` 下载便携版工具链，然后改用 `.\scripts\with-tooling.ps1 pnpm launch`。
+
+**端口被占用**  
+修改 `.env` 里的 `PORT`，或停止占用该端口的其他程序。
+
+**Docker 容器数据在哪**  
+所有持久化数据在宿主机 `./data/` 目录下，与容器生命周期无关。
+
+**如何备份**  
+直接备份 `data/db/workbench.db`（本地版路径为 `data/db/workbench.db`）和 `data/cache/`。
+
+---
+
+## 开发说明
+
+```sh
+corepack pnpm install    # 安装依赖
+corepack pnpm dev        # 开发模式（热更新）
+corepack pnpm lint       # 代码检查
+corepack pnpm test       # 单元测试
+corepack pnpm test:e2e   # E2E 测试（需要先 build）
+```
+
+**Windows 便携工具链**（无系统 Node / Git 时）
 
 ```powershell
-.\scripts\bootstrap-tooling.ps1
-.\scripts\with-tooling.ps1 pnpm install
-.\scripts\with-tooling.ps1 pnpm dev
+.\scripts\bootstrap-tooling.ps1          # 下载便携工具链（首次）
+.\scripts\with-tooling.ps1 pnpm install  # 安装依赖
+.\scripts\with-tooling.ps1 pnpm dev      # 开发模式
 ```
 
-其他常见例子：
+**目录约定**
 
-```powershell
-.\scripts\with-tooling.ps1 git --version
-.\scripts\with-tooling.ps1 gh auth login
-.\scripts\with-tooling.ps1 pnpm test:e2e
-```
-
-## 测试与校验
-
-```sh
-corepack pnpm lint
-corepack pnpm test
-corepack pnpm test:e2e
-```
-
-`test:e2e` 依赖 Playwright 浏览器，首次运行前可能需要额外执行安装命令。
-
-## 数据与缓存
-
-- SQLite 数据库：`./prisma/dev.db`
-- 远程仓库缓存：`./.cache/repos/<projectId>`
-- Markdown 导出：通过 API 下载，不强制写入仓库
-
-## GitHub
-
-若需要 GitHub CLI，可使用系统安装的 `gh`。Windows 用户也可以先执行 `.\scripts\bootstrap-tooling.ps1`，再通过 `.\scripts\with-tooling.ps1 gh ...` 调用 repo-local 版本。需要推送 GitHub 时，请先完成 `gh auth login` 或提供可用 token。
+| 目录 | 内容 |
+|---|---|
+| `src/app` | Next.js 页面与 API 路由 |
+| `src/components` | 交互组件 |
+| `src/lib` | Git 采集、报告生成、数据库、工具 |
+| `prisma` | SQLite schema |
+| `scripts` | 启动脚本、工具链脚本 |
+| `tests/e2e` | Playwright 冒烟测试 |

@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.local
+.env.*.local
 
 # vercel
 .vercel
@@ -57,3 +59,9 @@ next-env.d.ts
 
 # runtime exports
 /reports/
+
+# 本地运行数据目录（数据库、缓存、运行时日志）
+/data/
+
+# 环境变量（.env.example 保留，.env 不入库）
+.env
