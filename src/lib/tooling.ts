@@ -1,7 +1,11 @@
 import { access } from "node:fs/promises";
 import { constants } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { BUNDLED_GIT } from "@/lib/paths";
+
+const execFileAsync = promisify(execFile);
 
 async function fileExists(filePath: string) {
   try {
@@ -23,4 +27,23 @@ export async function resolveGitBinary() {
   }
 
   return "git";
+}
+
+export async function ensureGitBinaryAvailable() {
+  const binary = await resolveGitBinary();
+
+  if (binary !== "git") {
+    return binary;
+  }
+
+  try {
+    await execFileAsync(binary, ["--version"], {
+      windowsHide: true,
+    });
+    return binary;
+  } catch {
+    throw new Error(
+      "未检测到可用的 Git。请先安装系统 Git，或在 Windows 下先运行 scripts/bootstrap-tooling.ps1。",
+    );
+  }
 }
