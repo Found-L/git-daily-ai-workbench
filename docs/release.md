@@ -43,6 +43,7 @@
 
 - **默认方式**：在仓库目录内本地构建并启动
   - `docker compose up -d --build`
+- **自动化入口**：可使用 `pnpm docker:deploy` 执行 Docker 环境检查、持久化目录准备与 `docker compose up -d --build`
 - **镜像标签策略**：暂不强制；只有在引入镜像仓库后再定义 `latest` / 版本标签规则
 - **镜像仓库推送**：暂不纳入当前范围
 
@@ -65,7 +66,7 @@
 
 1. 备份 `data/db/workbench.db` 与 `data/cache/`
 2. 拉取最新代码：`git pull`
-3. 重新构建并启动：`docker compose up -d --build`
+3. 重新构建并启动：`pnpm docker:deploy`
 
 ## 6. 回滚流程
 
@@ -79,7 +80,7 @@
 ### Docker / Compose 模式
 
 1. 切回上一个稳定 tag 或 commit
-2. 执行 `docker compose up -d --build`
+2. 执行 `pnpm docker:deploy`
 3. 如有必要，恢复备份的 `data/db/workbench.db` 与 `data/cache/`
 
 ## 7. 何时再扩展范围
