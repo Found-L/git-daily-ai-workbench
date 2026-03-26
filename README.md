@@ -144,8 +144,11 @@ corepack pnpm install    # 安装依赖
 corepack pnpm dev        # 开发模式（热更新）
 corepack pnpm lint       # 代码检查
 corepack pnpm test       # 单元测试
-corepack pnpm test:e2e   # E2E 测试（需要先 build）
+corepack pnpm test:e2e:install  # 首次安装 Playwright Chromium 浏览器
+corepack pnpm test:e2e          # E2E 测试（内部会先 build，再启动 standalone 服务）
 ```
+
+> 首次运行 E2E，或 Playwright 版本升级后，先执行一次 `corepack pnpm test:e2e:install`。
 
 **Windows 便携工具链**（无系统 Node / Git 时）
 

@@ -148,6 +148,7 @@ export function DashboardShell({
 
                 <Space size="middle" wrap>
                   <Button
+                    data-testid="hero-add-project-button"
                     icon={<PlusOutlined />}
                     onClick={() => setIsCreateOpen(true)}
                     size="large"

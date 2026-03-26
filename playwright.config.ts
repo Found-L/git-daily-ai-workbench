@@ -12,8 +12,13 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `corepack pnpm build && corepack pnpm exec next start --hostname ${PLAYWRIGHT_HOST} --port ${PLAYWRIGHT_PORT}`,
+    command: "corepack pnpm build && node scripts/start-standalone.mjs",
     url: PLAYWRIGHT_BASE_URL,
+    env: {
+      ...process.env,
+      HOSTNAME: PLAYWRIGHT_HOST,
+      PORT: `${PLAYWRIGHT_PORT}`,
+    },
     reuseExistingServer: true,
     timeout: 180_000,
   },
